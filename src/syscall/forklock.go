@@ -1,4 +1,4 @@
-//go:build tinygo && linux && !wasip1 && !wasip2 && !darwin
+//go:build tinygo && linux && !wasip1 && !wasip2 && !darwin && !baremetal
 
 package syscall
 

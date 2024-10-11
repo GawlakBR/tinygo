@@ -43,5 +43,5 @@ func poll_runtime_pollSetDeadline(pd *pollDesc, d int64, mode int) {
 //go:linkname poll_runtime_pollOpen internal/poll.runtime_pollOpen
 func poll_runtime_pollOpen(fd uintptr) (*pollDesc, int) {
 	// println("poll_runtime_pollOpen not implemented", fd)
-	return &pollDesc{runtimeCtx: uintptr(0xdeadbeef)}, pollNoError
+	return &pollDesc{runtimeCtx: uintptr(0x1337)}, pollNoError
 }
