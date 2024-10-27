@@ -925,7 +925,7 @@ func buildAndRun(pkgName string, config *compileopts.Config, stdout io.Writer, c
 
 	// Run binary.
 	if config.Options.PrintCommands != nil {
-		config.Options.PrintCommands(cmd.Path, cmd.Args...)
+		config.Options.PrintCommands(cmd.Path, cmd.Args[1:]...)
 	}
 	err = run(cmd, result)
 	if err != nil {
