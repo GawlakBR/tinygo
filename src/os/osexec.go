@@ -40,8 +40,6 @@ func execve(pathname string, argv []string, envv []string) error {
 
 	ret, _, err := syscall.Syscall(syscall.SYS_EXECVE, uintptr(unsafe.Pointer(&argv0[0])), uintptr(unsafe.Pointer(&argv1[0])), uintptr(unsafe.Pointer(&env1[0])))
 	if int(ret) != 0 {
-		// errno := err.(syscall.Errno)
-		// return errno
 		return err
 	}
 

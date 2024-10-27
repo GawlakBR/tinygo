@@ -18,7 +18,7 @@ func TestForkExec(t *testing.T) {
 		return
 	}
 
-	proc, err := StartProcess("echo", []string{"/bin/echo", "hello", "world"}, &ProcAttr{})
+	proc, err := StartProcess("/bin/echo", []string{"hello", "world"}, &ProcAttr{})
 	if !errors.Is(err, nil) {
 		t.Fatalf("forkExec failed: %v", err)
 	}
@@ -28,12 +28,15 @@ func TestForkExec(t *testing.T) {
 	}
 	t.Logf("forkExec succeeded: new process has pid %d", proc)
 
-	proc, err = StartProcess("invalid", []string{"/bin/nonexistent"}, &ProcAttr{})
-	if errors.Is(err, nil) {
-		t.Fatalf("wanted err, got nil")
+}
+
+func TestForkExecInvalid(t *testing.T) {
+	proc, err := StartProcess("invalid", []string{"invalid"}, &ProcAttr{})
+	if !errors.Is(err, ErrNotExist) {
+		t.Fatalf("wanted ErrNotExist, got %s\n", err)
 	}
 
-	if proc.Pid != 0 {
-		t.Fatalf("wanted 0, got %v", proc.Pid)
+	if proc != nil {
+		t.Fatalf("wanted nil, got %v\n", proc)
 	}
 }
