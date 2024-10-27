@@ -45,6 +45,10 @@ func (p *Process) release() error {
 // * No parent-child communication via pipes (TODO)
 // * No waiting for crashes child processes to prohibit zombie process accumulation / Wait status checking (TODO)
 func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) {
+	if argv == nil {
+		return 0, errors.New("exec: no argv")
+	}
+
 	if len(argv) == 0 {
 		return 0, errors.New("exec: no argv")
 	}

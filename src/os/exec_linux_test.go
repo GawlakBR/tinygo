@@ -18,15 +18,22 @@ func TestForkExec(t *testing.T) {
 		return
 	}
 
-	proc, err := StartProcess("/bin/echo", []string{"hello", "world"}, &ProcAttr{})
+	proc, err := StartProcess("echo", []string{"/bin/echo", "hello", "world"}, &ProcAttr{})
 	if !errors.Is(err, nil) {
 		t.Fatalf("forkExec failed: %v", err)
-		return
 	}
 
 	if proc.Pid == 0 {
 		t.Fatalf("forkExec failed: new process has pid 0")
 	}
-
 	t.Logf("forkExec succeeded: new process has pid %d", proc)
+
+	proc, err = StartProcess("invalid", []string{"/bin/nonexistent"}, &ProcAttr{})
+	if errors.Is(err, nil) {
+		t.Fatalf("wanted err, got nil")
+	}
+
+	if proc.Pid != 0 {
+		t.Fatalf("wanted 0, got %v", proc.Pid)
+	}
 }
