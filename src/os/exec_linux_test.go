@@ -6,6 +6,7 @@ import (
 	"errors"
 	. "os"
 	"runtime"
+	"syscall"
 	"testing"
 )
 
@@ -27,13 +28,45 @@ func TestForkExec(t *testing.T) {
 		t.Fatalf("forkExec failed: new process has pid 0")
 	}
 	t.Logf("forkExec succeeded: new process has pid %d", proc)
-
 }
 
-func TestForkExecInvalid(t *testing.T) {
+func TestForkExecErrNotExist(t *testing.T) {
 	proc, err := StartProcess("invalid", []string{"invalid"}, &ProcAttr{})
 	if !errors.Is(err, ErrNotExist) {
 		t.Fatalf("wanted ErrNotExist, got %s\n", err)
+	}
+
+	if proc != nil {
+		t.Fatalf("wanted nil, got %v\n", proc)
+	}
+}
+
+func TestForkExecProcDir(t *testing.T) {
+	proc, err := StartProcess("/bin/echo", []string{"hello", "world"}, &ProcAttr{Dir: "dir"})
+	if !errors.Is(err, ErrNotImplementedDir) {
+		t.Fatalf("wanted ErrNotImplementedDir, got %v\n", err)
+	}
+
+	if proc != nil {
+		t.Fatalf("wanted nil, got %v\n", proc)
+	}
+}
+
+func TestForkExecProcSys(t *testing.T) {
+	proc, err := StartProcess("/bin/echo", []string{"hello", "world"}, &ProcAttr{Sys: &syscall.SysProcAttr{}})
+	if !errors.Is(err, ErrNotImplementedSys) {
+		t.Fatalf("wanted ErrNotImplementedSys, got %v\n", err)
+	}
+
+	if proc != nil {
+		t.Fatalf("wanted nil, got %v\n", proc)
+	}
+}
+
+func TestForkExecProcFiles(t *testing.T) {
+	proc, err := StartProcess("/bin/echo", []string{"hello", "world"}, &ProcAttr{Files: []*File{}})
+	if !errors.Is(err, ErrNotImplementedFiles) {
+		t.Fatalf("wanted ErrNotImplementedFiles, got %v\n", err)
 	}
 
 	if proc != nil {

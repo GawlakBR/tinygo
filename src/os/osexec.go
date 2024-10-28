@@ -1,4 +1,4 @@
-//go:build linux && !baremetal && !darwin && !tinygo.wasm && !arm64
+//go:build linux && !baremetal && !tinygo.wasm && !arm64
 
 // arm64 does not have a fork syscall, so ignore it for now
 // TODO: add support for arm64 with clone or use musl implementation
@@ -10,15 +10,12 @@ import (
 	"unsafe"
 )
 
-func fork() (pid int, err error) {
-	ret, _, err := syscall.Syscall(syscall.SYS_FORK, 0, 0, 0)
-	if int(ret) != 0 {
-		errno := err.(syscall.Errno)
-		if int(errno) != 0 {
-			return -1, errno
-		}
+func fork() (pid int32, err error) {
+	pid = libc_fork()
+	if pid != 0 {
+		err = syscall.Errno(*libc_errno())
 	}
-	return int(ret), nil
+	return
 }
 
 // the golang standard library does not expose interfaces for execve and fork, so we define them here the same way via the libc wrapper
@@ -52,3 +49,11 @@ func cstring(s string) []byte {
 	// final byte should be zero from the initial allocation
 	return data
 }
+
+//export fork
+func libc_fork() int32
+
+// Internal musl function to get the C errno pointer.
+//
+//export __errno_location
+func libc_errno() *int32

@@ -22,6 +22,12 @@ var (
 	Kill      Signal = syscall.SIGKILL
 )
 
+var (
+	ErrNotImplementedDir   = errors.New("directory setting not implemented")
+	ErrNotImplementedSys   = errors.New("sys setting not implemented")
+	ErrNotImplementedFiles = errors.New("files setting not implemented")
+)
+
 // Keep compatible with golang and always succeed and return new proc with pid on Linux.
 func findProcess(pid int) (*Process, error) {
 	return &Process{Pid: pid}, nil
@@ -57,7 +63,9 @@ func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) 
 		attr = new(ProcAttr)
 	}
 
-	pid, err = fork()
+	p, err := fork()
+	pid = int(p)
+
 	if err != nil {
 		return 0, err
 	} else {
@@ -78,6 +86,20 @@ func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) 
 // The StartProcess function creates a new process by forking the current process and then calling execve to replace the current process with the new process.
 // It thereby replaces the newly created process with the specified command and arguments.
 func startProcess(name string, argv []string, attr *ProcAttr) (p *Process, err error) {
+	if attr != nil {
+		if attr.Dir != "" {
+			return nil, ErrNotImplementedDir
+		}
+
+		if attr.Sys != nil {
+			return nil, ErrNotImplementedSys
+		}
+
+		if len(attr.Files) != 0 {
+			return nil, ErrNotImplementedFiles
+		}
+	}
+
 	pid, err := forkExec(name, argv, attr)
 	if err != nil {
 		return nil, err
