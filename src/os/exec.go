@@ -5,6 +5,12 @@ import (
 	"syscall"
 )
 
+var (
+	ErrNotImplementedDir   = errors.New("directory setting not implemented")
+	ErrNotImplementedSys   = errors.New("sys setting not implemented")
+	ErrNotImplementedFiles = errors.New("files setting not implemented")
+)
+
 type Signal interface {
 	String() string
 	Signal() // to distinguish from other Stringers

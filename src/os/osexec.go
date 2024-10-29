@@ -1,4 +1,4 @@
-//go:build linux && !baremetal && !tinygo.wasm && !arm64
+//go:build linux && !baremetal && !tinygo.wasm
 
 // arm64 does not have a fork syscall, so ignore it for now
 // TODO: add support for arm64 with clone or use musl implementation
@@ -13,7 +13,9 @@ import (
 func fork() (pid int32, err error) {
 	pid = libc_fork()
 	if pid != 0 {
-		err = syscall.Errno(*libc_errno())
+		if errno := *libc_errno(); errno != 0 {
+			err = syscall.Errno(*libc_errno())
+		}
 	}
 	return
 }

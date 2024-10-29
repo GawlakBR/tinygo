@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build linux && !baremetal && !tinygo.wasm && !arm64
+//go:build linux && !baremetal && !tinygo.wasm
 
 package os
 
@@ -20,12 +20,6 @@ import (
 var (
 	Interrupt Signal = syscall.SIGINT
 	Kill      Signal = syscall.SIGKILL
-)
-
-var (
-	ErrNotImplementedDir   = errors.New("directory setting not implemented")
-	ErrNotImplementedSys   = errors.New("sys setting not implemented")
-	ErrNotImplementedFiles = errors.New("files setting not implemented")
 )
 
 // Keep compatible with golang and always succeed and return new proc with pid on Linux.

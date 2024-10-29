@@ -1,4 +1,4 @@
-//go: build linux && !baremetal && !tinygo.wasm
+//go:build linux && !baremetal && !tinygo.wasm
 
 package os_test
 
@@ -24,10 +24,13 @@ func TestForkExec(t *testing.T) {
 		t.Fatalf("forkExec failed: %v", err)
 	}
 
+	if proc == nil {
+		t.Fatalf("proc is nil")
+	}
+
 	if proc.Pid == 0 {
 		t.Fatalf("forkExec failed: new process has pid 0")
 	}
-	t.Logf("forkExec succeeded: new process has pid %d", proc)
 }
 
 func TestForkExecErrNotExist(t *testing.T) {
