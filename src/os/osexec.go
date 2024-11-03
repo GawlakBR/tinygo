@@ -1,8 +1,5 @@
 //go:build linux && !baremetal && !tinygo.wasm
 
-// arm64 does not have a fork syscall, so ignore it for now
-// TODO: add support for arm64 with clone or use musl implementation
-
 package os
 
 import (

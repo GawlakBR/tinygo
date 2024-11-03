@@ -62,16 +62,16 @@ func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) 
 
 	if err != nil {
 		return 0, err
-	} else {
-		// else code runs in child, which then should exec the new process
-		err = execve(argv0, argv, attr.Env)
-		if err != nil {
-			// exec failed
-			return 0, err
-		}
-		// 3. TODO: use pipes to communicate back child status
-		return pid, nil
 	}
+
+	// else code runs in child, which then should exec the new process
+	err = execve(argv0, argv, attr.Env)
+	if err != nil {
+		// exec failed
+		return 0, err
+	}
+	// 3. TODO: use pipes to communicate back child status
+	return pid, nil
 }
 
 // In Golang, the idiomatic way to create a new process is to use the StartProcess function.
