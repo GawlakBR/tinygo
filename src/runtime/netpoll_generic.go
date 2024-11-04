@@ -6,6 +6,13 @@
 
 package runtime
 
+const (
+	pollNoError        = 0 // no error
+	pollErrClosing     = 1 // descriptor is closed
+	pollErrTimeout     = 2 // I/O timeout
+	pollErrNotPollable = 3 // general error polling descriptor
+)
+
 // Network poller descriptor.
 //
 // No heap pointers.
@@ -16,13 +23,13 @@ type pollDesc struct{}
 //go:linkname poll_runtime_pollReset internal/poll.runtime_pollReset
 func poll_runtime_pollReset(pd *pollDesc, mode int) int {
 	println("poll_runtime_pollReset not implemented", pd, mode)
-	return 1
+	return pollErrClosing
 }
 
 //go:linkname poll_runtime_pollWait internal/poll.runtime_pollWait
 func poll_runtime_pollWait(pd *pollDesc, mode int) int {
 	println("poll_runtime_pollWait not implemented", pd, mode)
-	return 1
+	return pollErrClosing
 }
 
 //go:linkname poll_runtime_pollSetDeadline internal/poll.runtime_pollSetDeadline

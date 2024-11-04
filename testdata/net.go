@@ -1,25 +1,19 @@
 package main
 
 import (
-	"bytes"
-	"fmt"
+	"io"
 	"net"
 	"strconv"
-	"time"
 )
 
 // Test golang network package integration for tinygo.
 // This test is not exhaustive and only tests the basic functionality of the package.
 
-const (
-	TEST_PORT = 9000
-)
-
 var (
 	testsPassed uint
+	lnPort      int
 	err         error
-	sendBuf     = &bytes.Buffer{}
-	recvBuf     = &bytes.Buffer{}
+	recvBuf     []byte
 )
 
 var (
@@ -28,29 +22,30 @@ var (
 
 func TestDialListen() {
 	// listen thread
+	listenReady := make(chan bool, 1)
 	go func() {
-		ln, err := net.Listen("tcp", ":"+strconv.FormatInt(TEST_PORT, 10))
+		ln, err := net.Listen("tcp4", ":0")
 		if err != nil {
-			fmt.Printf("error listening: %v\n", err)
+			println("error listening: ", err)
 			return
 		}
+		lnPort = ln.Addr().(*net.TCPAddr).Port
 
+		listenReady <- true
 		conn, err := ln.Accept()
 		if err != nil {
-			fmt.Printf("error accepting: %v\n", err)
+			println("error accepting:", err)
 			return
 		}
 
-		recvBuf.Reset()
-		_, err = conn.Read(recvBuf.Bytes())
-		if err != nil {
-			fmt.Printf("error reading: %v\n", err)
+		recvBuf = make([]byte, len(testDialListenData))
+		if _, err := io.ReadFull(conn, recvBuf); err != nil {
+			println("error reading: ", err)
 			return
 		}
 
-		// TODO: this is racy
-		if recvBuf.String() != string(testDialListenData) {
-			fmt.Printf("error: received data does not match sent data: '%s' != '%s'\n", recvBuf.String(), string(testDialListenData))
+		if string(recvBuf) != string(testDialListenData) {
+			println("error: received data does not match sent data", string(recvBuf), " != ", string(testDialListenData))
 			return
 		}
 		conn.Close()
@@ -58,25 +53,21 @@ func TestDialListen() {
 		return
 	}()
 
-	// hacky way to wait for the listener to start
-	time.Sleep(1 * time.Second)
-
-	sendBuf.Reset()
-	fmt.Fprint(sendBuf, testDialListenData)
-	conn, err := net.Dial("tcp4", "127.0.0.1:"+strconv.FormatInt(TEST_PORT, 10))
+	<-listenReady
+	conn, err := net.Dial("tcp4", "127.0.0.1:"+strconv.FormatInt(int64(lnPort), 10))
 	if err != nil {
-		fmt.Printf("error dialing: %v\n", err)
+		println("error dialing: ", err)
 		return
 	}
 
-	if _, err = conn.Write(sendBuf.Bytes()); err != nil {
-		fmt.Printf("error writing: %v\n", err)
+	if _, err = conn.Write(testDialListenData); err != nil {
+		println("error writing: ", err)
 		return
 	}
 }
 
 func main() {
-	fmt.Printf("test: net start\n")
+	println("test: net start")
 	TestDialListen()
-	fmt.Printf("test: net end\n")
+	println("test: net end")
 }
