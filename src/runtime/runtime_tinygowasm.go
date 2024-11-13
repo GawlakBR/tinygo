@@ -29,6 +29,44 @@ func proc_exit(exitcode uint32)
 //export __stdio_exit
 func __stdio_exit()
 
+var args []string
+
+//go:linkname os_runtime_args os.runtime_args
+func os_runtime_args() []string {
+	if args == nil {
+		// Read the number of args (argc) and the buffer size required to store
+		// all these args (argv).
+		var argc, argv_buf_size uint32
+		args_sizes_get(&argc, &argv_buf_size)
+		if argc == 0 {
+			return nil
+		}
+
+		// Obtain the command line arguments
+		argsSlice := make([]unsafe.Pointer, argc)
+		buf := make([]byte, argv_buf_size)
+		args_get(&argsSlice[0], unsafe.Pointer(&buf[0]))
+
+		// Convert the array of C strings to an array of Go strings.
+		args = make([]string, argc)
+		for i, cstr := range argsSlice {
+			length := strlen(cstr)
+			argString := _string{
+				length: length,
+				ptr:    (*byte)(cstr),
+			}
+			args[i] = *(*string)(unsafe.Pointer(&argString))
+		}
+	}
+	return args
+}
+
+//go:wasmimport wasi_snapshot_preview1 args_get
+func args_get(argv *unsafe.Pointer, argv_buf unsafe.Pointer) (errno uint16)
+
+//go:wasmimport wasi_snapshot_preview1 args_sizes_get
+func args_sizes_get(argc *uint32, argv_buf_size *uint32) (errno uint16)
+
 const (
 	putcharBufferSize = 120
 	stdout            = 1

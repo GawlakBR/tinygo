@@ -136,6 +136,8 @@
 
 	global.Go = class {
 		constructor() {
+			this.argv = ["js"];
+			this.env = {};
 			this._callbackTimeouts = new Map();
 			this._nextCallbackTimeoutID = 1;
 
@@ -236,9 +238,58 @@
 				return decoder.decode(new DataView(this._inst.exports.memory.buffer, ptr, len));
 			}
 
+			const storeStringArraySizes = (array, num_ptr, buf_size_ptr) => {
+				let buf_size = 0;
+				for (let s of array) {
+					buf_size += s.length + 1;
+				}
+				mem().setUint32(num_ptr, array.length, true);
+				mem().setUint32(buf_size_ptr, buf_size, true);
+			}
+
+			const storeStringArray = (array, ptrs_ptr, buf_ptr) => {
+				for (let s of array) {
+					// Put string data in buffer.
+					let data = encoder.encode(s);
+					let dest = new Uint8Array(this._inst.exports.memory.buffer, buf_ptr, data.length);
+					dest.set(data);
+					mem().setUint8(buf_ptr+data.length, 0);
+
+					// Put pointer to buffer in pointers array.
+					mem().setUint32(ptrs_ptr, buf_ptr, true);
+
+					// Advance to the next element in the array.
+					ptrs_ptr += 4;
+					buf_ptr += data.length + 1;
+				}
+			}
+
+			const envArray = () => {
+				let array = [];
+				for (let [key, value] of Object.entries(this.env)) {
+					array.push(`${key}=${value}`);
+				}
+				return array;
+			}
+
 			const timeOrigin = Date.now() - performance.now();
 			this.importObject = {
 				wasi_snapshot_preview1: {
+					args_sizes_get: (argc_ptr, argv_buf_size_ptr) => {
+						storeStringArraySizes(this.argv, argc_ptr, argv_buf_size_ptr);
+						return 0;
+					},
+					args_get: (argv_ptr, argv_buf_ptr) => {
+						storeStringArray(this.argv, argv_ptr, argv_buf_ptr);
+						return 0;
+					},
+					environ_get: (env_ptr, env_buf_ptr) => {
+						storeStringArray(envArray(), env_ptr, env_buf_ptr);
+					},
+					environ_sizes_get: (env_ptr, env_buf_size_ptr) => {
+						storeStringArraySizes(envArray(), env_ptr, env_buf_size_ptr);
+						return 0;
+					},
 					// https://github.com/WebAssembly/WASI/blob/main/phases/snapshot/docs.md#fd_write
 					fd_write: function(fd, iovs_ptr, iovs_len, nwritten_ptr) {
 						let nwritten = 0;
@@ -524,12 +575,14 @@
 		global.process.versions &&
 		!global.process.versions.electron
 	) {
-		if (process.argv.length != 3) {
+		if (process.argv.length < 3) {
 			console.error("usage: go_js_wasm_exec [wasm binary] [arguments]");
 			process.exit(1);
 		}
 
 		const go = new Go();
+		go.argv = process.argv.slice(2);
+		go.env = process.env;
 		WebAssembly.instantiate(fs.readFileSync(process.argv[2]), go.importObject).then((result) => {
 			return go.run(result.instance);
 		}).catch((err) => {

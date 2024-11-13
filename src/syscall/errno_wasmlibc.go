@@ -1,4 +1,4 @@
-//go:build wasip1
+//go:build js || wasip1
 
 package syscall
 

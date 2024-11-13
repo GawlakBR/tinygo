@@ -770,12 +770,11 @@ func Run(pkgName string, options *compileopts.Options, cmdArgs []string) error {
 // for the given emulator.
 func buildAndRun(pkgName string, config *compileopts.Config, stdout io.Writer, cmdArgs, environmentVars []string, timeout time.Duration, run func(cmd *exec.Cmd, result builder.BuildResult) error) (builder.BuildResult, error) {
 	// Determine whether we're on a system that supports environment variables
-	// and command line parameters (operating systems, WASI) or not (baremetal,
-	// WebAssembly in the browser). If we're on a system without an environment,
-	// we need to pass command line arguments and environment variables through
-	// global variables (built into the binary directly) instead of the
-	// conventional way.
-	needsEnvInVars := config.GOOS() == "js"
+	// and command line parameters (operating systems, WASI) or not (baremetal).
+	// If we're on a system without an environment, we need to pass command line
+	// arguments and environment variables through global variables (built into
+	// the binary directly) instead of the conventional way.
+	needsEnvInVars := false
 	for _, tag := range config.BuildTags() {
 		if tag == "baremetal" {
 			needsEnvInVars = true
