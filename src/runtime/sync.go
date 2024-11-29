@@ -5,9 +5,7 @@
 package runtime
 
 import (
-	"internal/task"
-	"sync"
-	"sync/atomic"
+	"internal/futex"
 )
 
 // This file contains stub implementations for internal/poll.
@@ -25,77 +23,30 @@ import (
 // This means we assume the following constant settings from the golang standard
 // library: lifo=false,profile=semaBlock,skipframe=0,reason=waitReasonSemaquire
 
-// The global state of the semaphore table.
-// Semaphores are identified by their address.
-// The table maps the address to the task that is currently holding the semaphore.
-// The table is protected by a mutex.
-// When a task acquires a semaphore, the mapping is added to the map.
-// When a task releases a semaphore, the mapping is removed from the map.
-//
-// The table is used to implement the cansemacquire function.
-// The cansemacquire function is called by the semacquire function.
-// The cansemacquire function checks if the semaphore is available.
-// If the semaphore is available, the function returns true.
-// If the semaphore is not available, the function returns false.
-type semTable struct {
-	table map[*uint32]*task.Task
-	lock  sync.Mutex
-}
-
-var semtable semTable
-
-func init() {
-	semtable.table = make(map[*uint32]*task.Task)
-}
-
-func (s *semTable) Lock() {
-	s.lock.Lock()
-}
-
-func (s *semTable) Unlock() {
-	s.lock.Unlock()
-}
-
 //go:linkname semacquire internal/poll.runtime_Semacquire
 func semacquire(sema *uint32) {
-	if cansemacquire(sema) {
-		return
-	}
-}
+	var semaBlock futex.Futex
+	semaBlock.Store(*sema)
 
-// Copied from src/runtime/sema.go
-func cansemacquire(addr *uint32) bool {
-	// Busy Looping until a lookup to the global semaphore table can be made
-	semtable.Lock()
+	// check if we can acquire the semaphore
+	semaBlock.Wait(1)
 
-	if _, ok := semtable.table[addr]; !ok {
-		semtable.table[addr] = task.Current()
-		semtable.Unlock()
-		return true
+	// the semaphore is free to use so we can acquire it
+	if semaBlock.Swap(0) != 1 {
+		panic("semaphore is already acquired, racy")
 	}
-
-	v := atomic.LoadUint32(addr)
-	if v == 0 {
-		semtable.Unlock()
-		return false
-	}
-	if atomic.CompareAndSwapUint32(addr, v, v-1) {
-		semtable.Unlock()
-		return true
-	}
-	return true
 }
 
 //go:linkname semrelease internal/poll.runtime_Semrelease
 func semrelease(sema *uint32) {
-	// Check if the semaphore is in the table
-	semtable.Lock()
-	if _, ok := semtable.table[sema]; !ok {
-		panic("invalid semaphore")
+	var semaBlock futex.Futex
+	semaBlock.Store(*sema)
+
+	// check if we can release the semaphore
+	if semaBlock.Swap(1) != 0 {
+		panic("semaphore is not acquired, racy")
 	}
 
-	atomic.AddUint32(sema, 1)
-	semtable.Unlock()
-
-	Gosched()
+	// wake up the next waiter
+	semaBlock.Wake()
 }
