@@ -4,6 +4,7 @@ package machine
 
 import (
 	"device/tkey"
+	"errors"
 	"strconv"
 )
 
@@ -113,8 +114,12 @@ var (
 	_UART0      = UART{Bus: tkey.UART}
 )
 
-// Thw TKey UART is fixed at 62500 baud, 8N1.
+// The TKey UART is fixed at 62500 baud, 8N1.
 func (uart *UART) Configure(config UARTConfig) error {
+	if config.BaudRate != 62500 {
+		return errors.New("uart: only 62500 baud rate is supported")
+	}
+
 	return nil
 }
 
