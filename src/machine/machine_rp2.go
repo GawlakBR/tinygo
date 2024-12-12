@@ -14,8 +14,6 @@ const deviceName = rp.Device
 const (
 	// Number of spin locks available
 	_NUMSPINLOCKS = 32
-	// Number of interrupt handlers available
-	_NUMIRQ               = 32
 	_PICO_SPINLOCK_ID_IRQ = 9
 )
 

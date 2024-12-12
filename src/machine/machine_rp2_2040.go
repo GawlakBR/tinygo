@@ -11,6 +11,7 @@ import (
 const (
 	_NUMBANK0_GPIOS = 30
 	_NUMBANK0_IRQS  = 4
+	_NUMIRQ = 32
 	rp2350ExtraReg  = 0
 	RESETS_RESET_Msk = 0x01ffffff
 	initUnreset     = rp.RESETS_RESET_ADC |
