@@ -73,6 +73,8 @@ func machineInit()
 
 func init() {
 	machineInit()
+
+	machine.InitSerial()
 }
 
 //export Reset_Handler
