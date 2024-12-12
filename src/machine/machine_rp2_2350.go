@@ -4,6 +4,7 @@ package machine
 
 import (
 	"device/rp"
+	"runtime/volatile"
 	"unsafe"
 )
 
@@ -12,12 +13,24 @@ const (
 	_NUMBANK0_IRQS  = 6
 	rp2350ExtraReg  = 1
 	notimpl         = "rp2350: not implemented"
+	RESETS_RESET_Msk = 0x1fffffff
 	initUnreset     = rp.RESETS_RESET_ADC |
 		rp.RESETS_RESET_SPI0 |
 		rp.RESETS_RESET_SPI1 |
 		rp.RESETS_RESET_UART0 |
 		rp.RESETS_RESET_UART1 |
 		rp.RESETS_RESET_USBCTRL
+	initDontReset   =
+		rp.RESETS_RESET_USBCTRL |
+		rp.RESETS_RESET_SYSCFG |
+		rp.RESETS_RESET_PLL_USB |
+		rp.RESETS_RESET_PLL_SYS |
+		rp.RESETS_RESET_PADS_QSPI |
+		rp.RESETS_RESET_IO_QSPI |
+		rp.RESETS_RESET_JTAG
+	padEnableMask = rp.PADS_BANK0_GPIO0_IE_Msk |
+		rp.PADS_BANK0_GPIO0_OD_Msk |
+		rp.PADS_BANK0_GPIO0_ISO_Msk
 )
 
 const (
@@ -35,13 +48,55 @@ const (
 	PinPIO2
 )
 
+const (
+	ClkGPOUT0 clockIndex = iota // GPIO Muxing 0
+	ClkGPOUT1                   // GPIO Muxing 1
+	ClkGPOUT2                   // GPIO Muxing 2
+	ClkGPOUT3                   // GPIO Muxing 3
+	ClkRef                      // Watchdog and timers reference clock
+	ClkSys                      // Processors, bus fabric, memory, memory mapped registers
+	ClkPeri                     // Peripheral clock for UART and SPI
+	ClkHSTX                     // High speed interface
+	ClkUSB                      // USB clock
+	ClkADC                      // ADC clock
+	NumClocks
+)
+
+func CalcClockDiv(srcFreq, freq uint32) uint32 {
+	// Div register is 4.16 int.frac divider so multiply by 2^16 (left shift by 16)
+	return uint32((uint64(srcFreq) << 16) / uint64(freq))
+}
+
+type clocksType struct {
+	clk   [NumClocks]clockType
+	dftclk_xosc_ctrl	volatile.Register32
+	dftclk_rosc_ctrl	volatile.Register32
+	dftclk_lposc_ctrl	volatile.Register32
+	resus struct {
+		ctrl   volatile.Register32
+		status volatile.Register32
+	}
+	fc0      fc
+	wakeEN0  volatile.Register32
+	wakeEN1  volatile.Register32
+	sleepEN0 volatile.Register32
+	sleepEN1 volatile.Register32
+	enabled0 volatile.Register32
+	enabled1 volatile.Register32
+	intR     volatile.Register32
+	intE     volatile.Register32
+	intF     volatile.Register32
+	intS     volatile.Register32
+}
+
+
 // GPIO function selectors
 const (
 	// Connect the high-speed transmit peripheral (HSTX) to GPIO.
-	fnHSTX       pinFunc = 0
-	fnSPI        pinFunc = 1 // Connect one of the internal PL022 SPI peripherals to GPIO
-	fnUARTctsrts pinFunc = 2
-	fnI2C        pinFunc = 3
+	fnHSTX pinFunc = 0
+	fnSPI pinFunc = 1 // Connect one of the internal PL022 SPI peripherals to GPIO
+	fnUART pinFunc = 2
+	fnI2C pinFunc = 3
 	// Connect a PWM slice to GPIO. There are eight PWM slices,
 	// each with two outputchannels (A/B). The B pin can also be used as an input,
 	// for frequency and duty cyclemeasurement
@@ -61,8 +116,8 @@ const (
 	// QSPI memory interface peripheral, used for execute-in-place from external QSPI flash or PSRAM memory devices.
 	fnQMI pinFunc = 9
 	// USB power control signals to/from the internal USB controller.
-	fnUSB  pinFunc = 10
-	fnUART pinFunc = 11
+	fnUSB pinFunc = 10
+	fnUARTAlt pinFunc = 11
 	fnNULL pinFunc = 0x1f
 )
 
@@ -128,6 +183,12 @@ func irqSetMask(mask uint32, enabled bool) {
 }
 
 func (clks *clocksType) initRTC() {} // No RTC on RP2350.
+
+func (clks *clocksType) initTicks() {
+	rp.TICKS.SetTIMER0_CTRL_ENABLE(0)
+	rp.TICKS.SetTIMER0_CYCLES(12)
+	rp.TICKS.SetTIMER0_CTRL_ENABLE(1)
+}
 
 // startTick starts the watchdog tick.
 // On RP2040, the watchdog contained a tick generator used to generate a 1μs tick for the watchdog. This was also
