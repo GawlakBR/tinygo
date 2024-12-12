@@ -12,7 +12,8 @@ const (
 	_NUMBANK0_GPIOS = 48
 	_NUMBANK0_IRQS  = 6
 	rp2350ExtraReg  = 1
-	notimpl         = "rp2350: not implemented"
+	_NUMIRQ = 51
+	notimpl = "rp2350: not implemented"
 	RESETS_RESET_Msk = 0x1fffffff
 	initUnreset     = rp.RESETS_RESET_ADC |
 		rp.RESETS_RESET_SPI0 |
@@ -170,17 +171,34 @@ var (
 )
 
 // Enable or disable a specific interrupt on the executing core.
-// num is the interrupt number which must be in [0,31].
+// num is the interrupt number which must be in [0,_NUMIRQ).
 func irqSet(num uint32, enabled bool) {
 	if num >= _NUMIRQ {
 		return
 	}
-	irqSetMask(1<<num, enabled)
+
+	register_index := num/32
+	var mask uint32 = 1<<(num%32)
+
+	if enabled {
+		// Clear pending before enable
+		//(if IRQ is actually asserted, it will immediately re-pend)
+		if register_index == 0 {
+			rp.PPB.NVIC_ICPR0.Set(mask)
+			rp.PPB.NVIC_ISER0.Set(mask)
+		} else {
+			rp.PPB.NVIC_ICPR1.Set(mask)
+			rp.PPB.NVIC_ISER1.Set(mask)
+		}
+	} else {
+		if register_index == 0 {
+			rp.PPB.NVIC_ICER0.Set(mask)
+		} else {
+			rp.PPB.NVIC_ICER1.Set(mask)
+		}
+	}
 }
 
-func irqSetMask(mask uint32, enabled bool) {
-	panic(notimpl)
-}
 
 func (clks *clocksType) initRTC() {} // No RTC on RP2350.
 
@@ -188,6 +206,10 @@ func (clks *clocksType) initTicks() {
 	rp.TICKS.SetTIMER0_CTRL_ENABLE(0)
 	rp.TICKS.SetTIMER0_CYCLES(12)
 	rp.TICKS.SetTIMER0_CTRL_ENABLE(1)
+}
+
+func EnterBootloader() {
+	panic(notimpl)
 }
 
 // startTick starts the watchdog tick.
