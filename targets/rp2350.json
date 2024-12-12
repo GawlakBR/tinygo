@@ -3,7 +3,7 @@
     "build-tags": ["rp2350", "rp"],
     "flash-1200-bps-reset": "true",
     "flash-method": "msd",
-    "serial": "usb",
+    "serial": "uart",
     "msd-volume-name": ["RP2350"],
     "msd-firmware-name": "firmware.uf2",
     "binary-format": "uf2",
