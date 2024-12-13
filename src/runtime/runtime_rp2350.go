@@ -75,9 +75,9 @@ func machineInit()
 func init() {
 	machineInit()
 
-	machine.InitSerial()
 	cdc.EnableUSBCDC()
 	machine.USBDev.Configure(machine.UARTConfig{})
+	machine.InitSerial()
 }
 
 //export Reset_Handler
