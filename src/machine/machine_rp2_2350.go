@@ -9,20 +9,19 @@ import (
 )
 
 const (
-	_NUMBANK0_GPIOS = 48
-	_NUMBANK0_IRQS  = 6
-	rp2350ExtraReg  = 1
-	_NUMIRQ = 51
-	notimpl = "rp2350: not implemented"
+	_NUMBANK0_GPIOS  = 48
+	_NUMBANK0_IRQS   = 6
+	rp2350ExtraReg   = 1
+	_NUMIRQ          = 51
+	notimpl          = "rp2350: not implemented"
 	RESETS_RESET_Msk = 0x1fffffff
-	initUnreset     = rp.RESETS_RESET_ADC |
+	initUnreset      = rp.RESETS_RESET_ADC |
 		rp.RESETS_RESET_SPI0 |
 		rp.RESETS_RESET_SPI1 |
 		rp.RESETS_RESET_UART0 |
 		rp.RESETS_RESET_UART1 |
 		rp.RESETS_RESET_USBCTRL
-	initDontReset   =
-		rp.RESETS_RESET_USBCTRL |
+	initDontReset = rp.RESETS_RESET_USBCTRL |
 		rp.RESETS_RESET_SYSCFG |
 		rp.RESETS_RESET_PLL_USB |
 		rp.RESETS_RESET_PLL_SYS |
@@ -69,11 +68,11 @@ func CalcClockDiv(srcFreq, freq uint32) uint32 {
 }
 
 type clocksType struct {
-	clk   [NumClocks]clockType
-	dftclk_xosc_ctrl	volatile.Register32
-	dftclk_rosc_ctrl	volatile.Register32
-	dftclk_lposc_ctrl	volatile.Register32
-	resus struct {
+	clk               [NumClocks]clockType
+	dftclk_xosc_ctrl  volatile.Register32
+	dftclk_rosc_ctrl  volatile.Register32
+	dftclk_lposc_ctrl volatile.Register32
+	resus             struct {
 		ctrl   volatile.Register32
 		status volatile.Register32
 	}
@@ -90,14 +89,13 @@ type clocksType struct {
 	intS     volatile.Register32
 }
 
-
 // GPIO function selectors
 const (
 	// Connect the high-speed transmit peripheral (HSTX) to GPIO.
 	fnHSTX pinFunc = 0
-	fnSPI pinFunc = 1 // Connect one of the internal PL022 SPI peripherals to GPIO
+	fnSPI  pinFunc = 1 // Connect one of the internal PL022 SPI peripherals to GPIO
 	fnUART pinFunc = 2
-	fnI2C pinFunc = 3
+	fnI2C  pinFunc = 3
 	// Connect a PWM slice to GPIO. There are eight PWM slices,
 	// each with two outputchannels (A/B). The B pin can also be used as an input,
 	// for frequency and duty cyclemeasurement
@@ -117,9 +115,9 @@ const (
 	// QSPI memory interface peripheral, used for execute-in-place from external QSPI flash or PSRAM memory devices.
 	fnQMI pinFunc = 9
 	// USB power control signals to/from the internal USB controller.
-	fnUSB pinFunc = 10
+	fnUSB     pinFunc = 10
 	fnUARTAlt pinFunc = 11
-	fnNULL pinFunc = 0x1f
+	fnNULL    pinFunc = 0x1f
 )
 
 // Configure configures the gpio pin as per mode.
@@ -177,8 +175,8 @@ func irqSet(num uint32, enabled bool) {
 		return
 	}
 
-	register_index := num/32
-	var mask uint32 = 1<<(num%32)
+	register_index := num / 32
+	var mask uint32 = 1 << (num % 32)
 
 	if enabled {
 		// Clear pending before enable
@@ -198,7 +196,6 @@ func irqSet(num uint32, enabled bool) {
 		}
 	}
 }
-
 
 func (clks *clocksType) initRTC() {} // No RTC on RP2350.
 
