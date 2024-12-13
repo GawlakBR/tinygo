@@ -13,7 +13,8 @@ const deviceName = rp.Device
 
 const (
 	// Number of spin locks available
-	_NUMSPINLOCKS = 32
+	// Note: On RP2350, most spinlocks are unusable due to Errata 2
+	_NUMSPINLOCKS         = 32
 	_PICO_SPINLOCK_ID_IRQ = 9
 )
 

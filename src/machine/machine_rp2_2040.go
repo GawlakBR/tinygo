@@ -9,19 +9,19 @@ import (
 )
 
 const (
-	_NUMBANK0_GPIOS = 30
-	_NUMBANK0_IRQS  = 4
-	_NUMIRQ = 32
-	rp2350ExtraReg  = 0
+	_NUMBANK0_GPIOS  = 30
+	_NUMBANK0_IRQS   = 4
+	_NUMIRQ          = 32
+	rp2350ExtraReg   = 0
 	RESETS_RESET_Msk = 0x01ffffff
-	initUnreset     = rp.RESETS_RESET_ADC |
+	initUnreset      = rp.RESETS_RESET_ADC |
 		rp.RESETS_RESET_RTC |
 		rp.RESETS_RESET_SPI0 |
 		rp.RESETS_RESET_SPI1 |
 		rp.RESETS_RESET_UART0 |
 		rp.RESETS_RESET_UART1 |
 		rp.RESETS_RESET_USBCTRL
-	initDontReset   = rp.RESETS_RESET_IO_QSPI |
+	initDontReset = rp.RESETS_RESET_IO_QSPI |
 		rp.RESETS_RESET_PADS_QSPI |
 		rp.RESETS_RESET_PLL_USB |
 		rp.RESETS_RESET_USBCTRL |
@@ -61,7 +61,7 @@ const (
 
 func CalcClockDiv(srcFreq, freq uint32) uint32 {
 	// Div register is 24.8 int.frac divider so multiply by 2^8 (left shift by 8)
-    return uint32((uint64(srcFreq) << 8) / uint64(freq))
+	return uint32((uint64(srcFreq) << 8) / uint64(freq))
 }
 
 type clocksType struct {
