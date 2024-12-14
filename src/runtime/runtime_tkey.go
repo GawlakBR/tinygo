@@ -24,7 +24,7 @@ func main() {
 func initPeripherals() {
 	// prescaler value that results in 0.00001-second timer-ticks.
 	// given an 18 MHz processor, a millisecond is about 18,000 cycles.
-	tkey.TIMER.PRESCALER.Set(18_000_000 / 100000)
+	tkey.TIMER.PRESCALER.Set(18 * machine.MHz / 100000)
 
 	machine.InitSerial()
 }

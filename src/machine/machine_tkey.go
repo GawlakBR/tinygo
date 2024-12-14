@@ -84,20 +84,22 @@ func (p Pin) Get() bool {
 		}
 	case GPIO1:
 		mode = gpio1Config.Mode
-		if tkey.TK1.GPIO.HasBits(1 << uint(p-8)) {
-			pushed = true
-		}
+		pushed = tkey.TK1.GPIO.HasBits(1 << uint(p-8))
 	case GPIO2:
 		mode = gpio2Config.Mode
-		if tkey.TK1.GPIO.HasBits(1 << uint(p-8)) {
-			pushed = true
-		}
+		pushed = tkey.TK1.GPIO.HasBits(1 << uint(p-8))
+	case GPIO3, GPIO4:
+		mode = PinOutput
+		pushed = tkey.TK1.GPIO.HasBits(1 << uint(p-8))
+	case LED_BLUE, LED_GREEN, LED_RED:
+		mode = PinOutput
+		pushed = tkey.TK1.LED.HasBits(1 << uint(p))
 	}
 
 	switch mode {
 	case PinInputPullup:
 		return !pushed
-	case PinInput, PinInputPulldown:
+	case PinInput, PinInputPulldown, PinOutput:
 		return pushed
 	}
 
@@ -116,7 +118,7 @@ var (
 
 // The TKey UART is fixed at 62500 baud, 8N1.
 func (uart *UART) Configure(config UARTConfig) error {
-	if config.BaudRate != 62500 {
+	if !(config.BaudRate == 62500 || config.BaudRate == 0) {
 		return errors.New("uart: only 62500 baud rate is supported")
 	}
 
