@@ -206,7 +206,7 @@ func (clks *clocksType) initTicks() {
 }
 
 func EnterBootloader() {
-	panic(notimpl)
+	enterBootloader()
 }
 
 // startTick starts the watchdog tick.
