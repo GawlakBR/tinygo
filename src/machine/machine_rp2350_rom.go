@@ -2,8 +2,7 @@
 
 package machine
 
-import (
-)
+import ()
 
 /*
 typedef unsigned char uint8_t;
@@ -150,5 +149,5 @@ void reset_usb_boot(uint32_t usb_activity_gpio_pin_mask, uint32_t disable_interf
 import "C"
 
 func enterBootloader() {
-	  C.reset_usb_boot(0,0)
+	C.reset_usb_boot(0, 0)
 }
