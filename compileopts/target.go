@@ -501,6 +501,7 @@ func defaultTarget(options *Options) (*TargetSpec, error) {
 		}
 		spec.ExtraFiles = append(spec.ExtraFiles, "src/runtime/asm_"+asmGoarch+suffix+".S")
 		spec.ExtraFiles = append(spec.ExtraFiles, "src/internal/task/task_stack_"+asmGoarch+suffix+".S")
+		spec.ExtraFiles = append(spec.ExtraFiles, "src/internal/task/task_cores.c")
 	}
 
 	// Configure the emulator.

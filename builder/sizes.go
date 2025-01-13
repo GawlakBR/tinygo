@@ -490,9 +490,9 @@ func loadProgramSize(path string, packagePathMap map[string]string) (*programSiz
 				continue
 			}
 			if section.Type == elf.SHT_NOBITS {
-				if section.Name == ".stack" {
+				if section.Name == ".stack" || section.Name == ".stack1" {
 					// TinyGo emits stack sections on microcontroller using the
-					// ".stack" name.
+					// ".stack" (or ".stack1") name.
 					// This is a bit ugly, but I don't think there is a way to
 					// mark the stack section in a linker script.
 					sections = append(sections, memorySection{

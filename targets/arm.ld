@@ -32,6 +32,15 @@ SECTIONS
         _stack_top = .;
     } >RAM
 
+    /* Stack for second core (core 1), if there is one. This memory area won't be
+     * reserved if there is no second core. */
+    .stack1 (NOLOAD) :
+    {
+        . = ALIGN(4);
+        . += _stack_size;
+        _stack1_top = .;
+    } >RAM
+
     /* Start address (in flash) of .data, used by startup code. */
     _sidata = LOADADDR(.data);
 

@@ -208,6 +208,8 @@ func (c *compilerContext) getFunction(fn *ssa.Function) (llvm.Type, llvm.Value) 
 			// > circumstances, and should not be exposed to source languages.
 			llvmutil.AppendToGlobal(c.mod, "llvm.compiler.used", llvmFn)
 		}
+	case "tinygo_exitTask", "tinygo_schedulerUnlock":
+		llvmutil.AppendToGlobal(c.mod, "llvm.used", llvmFn)
 	}
 
 	// External/exported functions may not retain pointer values.

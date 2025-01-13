@@ -7,9 +7,6 @@ import "unsafe"
 // There is only one goroutine so the task struct can be a global.
 var mainTask Task
 
-//go:linkname runtimePanic runtime.runtimePanic
-func runtimePanic(str string)
-
 func Pause() {
 	runtimePanic("scheduler is disabled")
 }

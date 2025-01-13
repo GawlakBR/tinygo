@@ -244,9 +244,6 @@ func StackTop() uintptr {
 	return Current().state.stackTop
 }
 
-//go:linkname runtimePanic runtime.runtimePanic
-func runtimePanic(msg string)
-
 // Using //go:linkname instead of //export so that we don't tell the compiler
 // that the 't' parameter won't escape (because it will).
 //
