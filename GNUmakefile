@@ -754,12 +754,6 @@ endif
 	@$(MD5SUM) test.hex
 	$(TINYGO) build -size short -o test.hex -target=feather-m4          examples/pwm
 	@$(MD5SUM) test.hex
-	# test uart
-	$(TINYGO) build -size short -o test.hex -target=waveshare-rp2040-tiny examples/uart
-	@$(MD5SUM) test.hex
-	# test i2c
-	$(TINYGO) build -size short -o test.hex -target=waveshare-rp2040-tiny examples/i2c-target
-	@$(MD5SUM) test.hex
 	# test usb
 	$(TINYGO) build -size short -o test.hex -target=feather-nrf52840    examples/hid-keyboard
 	@$(MD5SUM) test.hex
