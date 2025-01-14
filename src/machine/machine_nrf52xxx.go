@@ -14,19 +14,17 @@ func CPUFrequency() uint32 {
 
 // InitADC initializes the registers needed for ADC.
 func InitADC() {
-	return // no specific setup on nrf52 machine.
+	// Enable ADC.
+	// The ADC does not consume a noticeable amount of current by being enabled.
+	nrf.SAADC.ENABLE.Set(nrf.SAADC_ENABLE_ENABLE_Enabled << nrf.SAADC_ENABLE_ENABLE_Pos)
 }
 
 // Configure configures an ADC pin to be able to read analog data.
-func (a ADC) Configure(config ADCConfig) {
-	// Enable ADC.
-	// The ADC does not consume a noticeable amount of current simply by being
-	// enabled.
-	nrf.SAADC.ENABLE.Set(nrf.SAADC_ENABLE_ENABLE_Enabled << nrf.SAADC_ENABLE_ENABLE_Pos)
-
-	// Use fixed resolution of 12 bits.
-	// TODO: is it useful for users to change this?
-	nrf.SAADC.RESOLUTION.Set(nrf.SAADC_RESOLUTION_VAL_12bit)
+// Reference voltage can be 150, 300, 600, 1200, 1800, 2400, 3000(default), 3600 mV
+// Resolution can be 8, 10, 12(default), 14 bits
+// SampleTime will be ceiled to 3(default), 5, 10, 15, 20 or 40(max) µS respectively
+// Samples can be 1(default), 2, 4, 8, 16, 32, 64, 128, 256 samples
+func (a *ADC) Configure(config ADCConfig) {
 
 	var configVal uint32 = nrf.SAADC_CH_CONFIG_RESP_Bypass<<nrf.SAADC_CH_CONFIG_RESP_Pos |
 		nrf.SAADC_CH_CONFIG_RESP_Bypass<<nrf.SAADC_CH_CONFIG_RESN_Pos |
