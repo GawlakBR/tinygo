@@ -49,7 +49,7 @@ func (a *ADC) Configure(config ADCConfig) {
 	case 3600: // 3.6V
 		configVal |= nrf.SAADC_CH_CONFIG_GAIN_Gain1_6 << nrf.SAADC_CH_CONFIG_GAIN_Pos
 	default:
-		// TODO: return an error
+		// TODO: return an error, will that interfere with any interfaced if one will be?
 	}
 
 	// Source resistance, according to table 89 on page 364 of the nrf52832 datasheet.
@@ -100,36 +100,28 @@ func (a *ADC) Configure(config ADCConfig) {
 	nrf.SAADC.CH[0].CONFIG.Set(configVal)
 }
 
-// Get returns the current value of a ADC pin in the range 0..0xffff.
 func (a ADC) Get() uint16 {
+// Get returns the current value of an ADC pin in the range 0..0xffff.
 	var pwmPin uint32
 	var rawValue volatile.Register16
 
 	switch a.Pin {
 	case 2:
 		pwmPin = nrf.SAADC_CH_PSELP_PSELP_AnalogInput0
-
 	case 3:
 		pwmPin = nrf.SAADC_CH_PSELP_PSELP_AnalogInput1
-
 	case 4:
 		pwmPin = nrf.SAADC_CH_PSELP_PSELP_AnalogInput2
-
 	case 5:
 		pwmPin = nrf.SAADC_CH_PSELP_PSELP_AnalogInput3
-
 	case 28:
 		pwmPin = nrf.SAADC_CH_PSELP_PSELP_AnalogInput4
-
 	case 29:
 		pwmPin = nrf.SAADC_CH_PSELP_PSELP_AnalogInput5
-
 	case 30:
 		pwmPin = nrf.SAADC_CH_PSELP_PSELP_AnalogInput6
-
 	case 31:
 		pwmPin = nrf.SAADC_CH_PSELP_PSELP_AnalogInput7
-
 	default:
 		return 0
 	}
@@ -194,7 +186,7 @@ type SPIConfig struct {
 	Mode      uint8
 }
 
-// Configure is intended to setup the SPI interface.
+// Configure is intended to set up the SPI interface.
 func (spi SPI) Configure(config SPIConfig) error {
 	// Disable bus to configure it
 	spi.Bus.ENABLE.Set(nrf.SPIM_ENABLE_ENABLE_Disabled)
