@@ -169,13 +169,7 @@ func (a *ADC) Get() uint16 {
 	}
 	nrf.SAADC.EVENTS_STOPPED.Set(0)
 
-	value := int16(rawValue.Get())
-	if value < 0 {
-		value = 0
-	}
-
-	// Return 16-bit result from 12-bit value.
-	return uint16(value << 4)
+	return rawValue.Get()
 }
 
 // SPI on the NRF.
