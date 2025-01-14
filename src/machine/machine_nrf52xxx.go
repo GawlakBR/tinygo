@@ -52,8 +52,23 @@ func (a *ADC) Configure(config ADCConfig) {
 		// TODO: return an error, will that interfere with any interfaced if one will be?
 	}
 
-	// Source resistance, according to table 89 on page 364 of the nrf52832 datasheet.
-	// https://infocenter.nordicsemi.com/pdf/nRF52832_PS_v1.4.pdf
+	var resolution uint32
+	switch config.Resolution {
+	case 8:
+		resolution = nrf.SAADC_RESOLUTION_VAL_8bit
+	case 10:
+		resolution = nrf.SAADC_RESOLUTION_VAL_10bit
+	case 12:
+		resolution = nrf.SAADC_RESOLUTION_VAL_12bit
+	case 14:
+		resolution = nrf.SAADC_RESOLUTION_VAL_14bit
+	default:
+		resolution = nrf.SAADC_RESOLUTION_VAL_12bit
+	}
+	nrf.SAADC.RESOLUTION.Set(resolution)
+
+	// Source resistance, according to table 41 on page 676 of the nrf52832 datasheet.
+	// https://docs-be.nordicsemi.com/bundle/ps_nrf52840/attach/nRF52840_PS_v1.11.pdf?_LANG=enus
 	if config.SampleTime <= 3 { // <= 10kΩ
 		configVal |= nrf.SAADC_CH_CONFIG_TACQ_3us << nrf.SAADC_CH_CONFIG_TACQ_Pos
 	} else if config.SampleTime <= 5 { // <= 40kΩ
@@ -100,8 +115,8 @@ func (a *ADC) Configure(config ADCConfig) {
 	nrf.SAADC.CH[0].CONFIG.Set(configVal)
 }
 
-func (a ADC) Get() uint16 {
 // Get returns the current value of an ADC pin in the range 0..0xffff.
+func (a *ADC) Get() uint16 {
 	var pwmPin uint32
 	var rawValue volatile.Register16
 
