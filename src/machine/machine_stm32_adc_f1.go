@@ -23,6 +23,9 @@ func InitADC() {
 	// Enable ADC clock
 	enableAltFuncClock(unsafe.Pointer(stm32.ADC1))
 
+	// enable
+	stm32.ADC1.CR2.SetBits(stm32.ADC_CR2_ADON)
+
 	// set scan mode
 	stm32.ADC1.CR1.SetBits(stm32.ADC_CR1_SCAN)
 
@@ -31,9 +34,6 @@ func InitADC() {
 
 	stm32.ADC1.SQR1.ClearBits(stm32.ADC_SQR1_L_Msk)
 	stm32.ADC1.SQR1.SetBits(2 << stm32.ADC_SQR1_L_Pos) // 2 means 3 conversions
-
-	// enable
-	stm32.ADC1.CR2.SetBits(stm32.ADC_CR2_ADON)
 
 	return
 }
