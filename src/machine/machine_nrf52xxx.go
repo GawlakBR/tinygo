@@ -25,7 +25,6 @@ func InitADC() {
 // SampleTime will be ceiled to 3(default), 5, 10, 15, 20 or 40(max) µS respectively
 // Samples can be 1(default), 2, 4, 8, 16, 32, 64, 128, 256 samples
 func (a *ADC) Configure(config ADCConfig) {
-
 	var configVal uint32 = nrf.SAADC_CH_CONFIG_RESP_Bypass<<nrf.SAADC_CH_CONFIG_RESP_Pos |
 		nrf.SAADC_CH_CONFIG_RESP_Bypass<<nrf.SAADC_CH_CONFIG_RESN_Pos |
 		nrf.SAADC_CH_CONFIG_REFSEL_Internal<<nrf.SAADC_CH_CONFIG_REFSEL_Pos |
@@ -169,7 +168,22 @@ func (a *ADC) Get() uint16 {
 	}
 	nrf.SAADC.EVENTS_STOPPED.Set(0)
 
-	return rawValue.Get()
+	// convert to 16 bit resolution/value
+	var resolutionAdjustment uint8
+	switch nrf.SAADC.RESOLUTION.Get() {
+	case nrf.SAADC_RESOLUTION_VAL_8bit:
+		resolutionAdjustment = 8
+	case nrf.SAADC_RESOLUTION_VAL_10bit:
+		resolutionAdjustment = 6
+	case nrf.SAADC_RESOLUTION_VAL_12bit:
+		resolutionAdjustment = 4
+	case nrf.SAADC_RESOLUTION_VAL_14bit:
+		resolutionAdjustment = 2
+	default:
+		resolutionAdjustment = 4 // 12bit
+	}
+
+	return rawValue.Get() << resolutionAdjustment
 }
 
 // SPI on the NRF.
