@@ -10,6 +10,7 @@
 package os
 
 import (
+	"internal/poll"
 	"io"
 	"syscall"
 	_ "unsafe"
@@ -42,6 +43,7 @@ type file struct {
 	name       string
 	dirinfo    *dirInfo // nil unless directory being read
 	appendMode bool
+	pfd        poll.FD
 }
 
 func (f *file) close() (err error) {

@@ -36,3 +36,23 @@ func (f *File) setWriteDeadline(t time.Time) error {
 	}
 	return ErrNotImplemented
 }
+
+// See docs in file.go:(*File).Chmod.
+func (f *File) chmod(mode FileMode) error {
+	if err := f.checkValid("chmod"); err != nil {
+		return err
+	}
+	if e := f.pfd.Fchmod(syscallMode(mode)); e != nil {
+		return f.wrapErr("chmod", e)
+	}
+	return nil
+}
+
+// checkValid checks whether f is valid for use.
+// If not, it returns an appropriate error, perhaps incorporating the operation name op.
+func (f *File) checkValid(_ string) error {
+	if f == nil {
+		return ErrInvalid
+	}
+	return nil
+}

@@ -19,6 +19,7 @@ package os
 
 import (
 	"errors"
+	"internal/poll"
 	"io"
 	"io/fs"
 	"runtime"
@@ -59,6 +60,25 @@ func fixCount(n int, err error) (int, error) {
 		n = 0
 	}
 	return n, err
+}
+
+// checkWrapErr is the test hook to enable checking unexpected wrapped errors of poll.ErrFileClosing.
+// It is set to true in the export_test.go for tests (including fuzz tests).
+var checkWrapErr = false
+
+// wrapErr wraps an error that occurred during an operation on an open file.
+// It passes io.EOF through unchanged, otherwise converts
+// poll.ErrFileClosing to ErrClosed and wraps the error in a PathError.
+func (f *File) wrapErr(op string, err error) error {
+	if err == nil || err == io.EOF {
+		return err
+	}
+	if err == poll.ErrFileClosing {
+		err = ErrClosed
+	} else if checkWrapErr && errors.Is(err, poll.ErrFileClosing) {
+		panic("unexpected error wrapping poll.ErrFileClosing: " + err.Error())
+	}
+	return &PathError{Op: op, Path: f.name, Err: err}
 }
 
 // Remove removes a file or (empty) directory. If the operation fails, it will
@@ -256,6 +276,10 @@ func (f *File) SyscallConn() (conn syscall.RawConn, err error) {
 	}
 	return
 }
+
+// Chmod changes the mode of the file to mode.
+// If there is an error, it will be of type *PathError.
+func (f *File) Chmod(mode FileMode) error { return f.chmod(mode) }
 
 // SetDeadline sets the read and write deadlines for a File.
 // Calls to SetDeadline for files that do not support deadlines will return ErrNoDeadline
