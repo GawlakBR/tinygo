@@ -2,7 +2,7 @@
 
 // This file contains the pin mappings for the ESP32 supermini boards.
 //
-// - https://forum.arduino.cc/t/esp32-c3-supermini-pinout/1189850/7
+// - https://web.archive.org/web/20240805232453/https://dl.artronshop.co.th/ESP32-C3%20SuperMini%20datasheet.pdf
 
 package machine
 
