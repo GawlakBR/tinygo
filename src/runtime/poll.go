@@ -21,3 +21,13 @@ func poll_runtime_pollClose(ctx uintptr) {
 func poll_runtime_pollUnblock(ctx uintptr) {
 	panic("todo: runtime_pollUnblock")
 }
+
+//go:linkname poll_runtime_pollReset internal/poll.runtime_pollReset
+func poll_runtime_pollReset(ctx uintptr) {
+	panic("todo: runtime_pollReset")
+}
+
+//go:linkname poll_runtime_pollWait internal/poll.runtime_pollWait
+func poll_runtime_pollWait(ctx uintptr) {
+	panic("todo: runtime_pollWait")
+}

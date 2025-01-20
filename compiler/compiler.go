@@ -464,8 +464,13 @@ func (c *compilerContext) makeLLVMType(goType types.Type) llvm.Type {
 			members[i] = c.getLLVMType(typ.At(i).Type())
 		}
 		return c.ctx.StructType(members, false)
+	//case *types.Alias:
+	//	if typ.Obj().Name() == "any" && typ.Obj().Parent() == types.Universe {
+	//		return c.getLLVMRuntimeType("_interface")
+	//	}
+	//	panic("unknown object type: " + goType.String())
 	default:
-		panic("unknown type: " + goType.String())
+		panic(fmt.Sprintf("unknown type: %s %T", goType.String(), typ))
 	}
 }
 
@@ -659,6 +664,11 @@ func (c *compilerContext) createDIType(typ types.Type) llvm.Metadata {
 		return md
 	case *types.TypeParam:
 		return c.getDIType(typ.Underlying())
+	//case *types.Alias:
+	//	if typ.Obj().Name() == "any" && typ.Obj().Parent() == types.Universe {
+	//		return c.getDIType(c.program.ImportedPackage("runtime").Members["_interface"].(*ssa.Type).Type())
+	//	}
+	//	panic("unknown object while generating DWARF debug type: " + typ.String())
 	default:
 		panic("unknown type while generating DWARF debug type: " + typ.String())
 	}

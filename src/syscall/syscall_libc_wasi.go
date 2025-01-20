@@ -230,7 +230,7 @@ const (
 //
 // https://github.com/WebAssembly/wasi-libc/blob/main/libc-bottom-half/headers/public/__struct_timespec.h
 type Timespec struct {
-	Sec  int32
+	Sec  int64
 	Nsec int64
 }
 
@@ -301,34 +301,34 @@ const (
 	DT_UNKNOWN = __WASI_FILETYPE_UNKNOWN
 )
 
-// Dirent is returned by pointer from Readdir to iterate over directory entries.
+//// Dirent is returned by pointer from Readdir to iterate over directory entries.
+////
+//// The pointer is managed by wasi-libc and is only valid until the next call to
+//// Readdir or Fdclosedir.
+////
+//// https://github.com/WebAssembly/wasi-libc/blob/main/libc-bottom-half/headers/public/__struct_dirent.h
+//type Dirent struct {
+//	Ino  uint64
+//	Type uint8
+//}
 //
-// The pointer is managed by wasi-libc and is only valid until the next call to
-// Readdir or Fdclosedir.
-//
-// https://github.com/WebAssembly/wasi-libc/blob/main/libc-bottom-half/headers/public/__struct_dirent.h
-type Dirent struct {
-	Ino  uint64
-	Type uint8
-}
-
-func (dirent *Dirent) Name() []byte {
-	// The dirent C struct uses a flexible array member to indicate that the
-	// directory name is laid out in memory right after the struct data:
-	//
-	// struct dirent {
-	//   ino_t d_ino;
-	//   unsigned char d_type;
-	//   char d_name[];
-	// };
-	name := (*[PATH_MAX]byte)(unsafe.Add(unsafe.Pointer(dirent), 9))
-	for i, c := range name {
-		if c == 0 {
-			return name[:i:i]
-		}
-	}
-	return name[:]
-}
+//func (dirent *Dirent) Name() []byte {
+//	// The dirent C struct uses a flexible array member to indicate that the
+//	// directory name is laid out in memory right after the struct data:
+//	//
+//	// struct dirent {
+//	//   ino_t d_ino;
+//	//   unsigned char d_type;
+//	//   char d_name[];
+//	// };
+//	name := (*[PATH_MAX]byte)(unsafe.Add(unsafe.Pointer(dirent), 9))
+//	for i, c := range name {
+//		if c == 0 {
+//			return name[:i:i]
+//		}
+//	}
+//	return name[:]
+//}
 
 func Fdopendir(fd int) (dir uintptr, err error) {
 	d := libc_fdopendir(int32(fd))
