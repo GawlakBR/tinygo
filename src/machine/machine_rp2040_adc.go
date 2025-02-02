@@ -1,4 +1,4 @@
-//go:build rp2350a
+//go:build rp2040 || rp2350a
 
 package machine
 
