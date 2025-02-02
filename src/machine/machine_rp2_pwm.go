@@ -49,6 +49,32 @@ func getPWMGroup(index uintptr) *pwmGroup {
 	return (*pwmGroup)(unsafe.Add(unsafe.Pointer(rp.PWM), 0x14*index))
 }
 
+// Configure enables and configures this PWM.
+func (pwm *pwmGroup) Configure(config PWMConfig) error {
+	return pwm.init(config, true)
+}
+
+// Channel returns a PWM channel for the given pin. If pin does
+// not belong to PWM peripheral ErrInvalidOutputPin error is returned.
+// It also configures pin as PWM output.
+func (pwm *pwmGroup) Channel(pin Pin) (channel uint8, err error) {
+	if pin > maxPWMPins || pwmGPIOToSlice(pin) != pwm.peripheral() {
+		return 3, ErrInvalidOutputPin
+	}
+	pin.Configure(PinConfig{PinPWM})
+	return pwmGPIOToChannel(pin), nil
+}
+
+// PWMPeripheral Peripheral returns the RP2040/Rp2350A PWM peripheral which ranges from 0 to 7 and 0 to 11 on RP2350B. Each
+// PWM peripheral has 2 channels, A and B which correspond to 0 and 1 in the program.
+// This number corresponds to the package's PWM0 through PWM7 (or PWM11) handles
+func PWMPeripheral(pin Pin) (sliceNum uint8, err error) {
+	if pin > maxPWMPins {
+		return 0, ErrInvalidOutputPin
+	}
+	return pwmGPIOToSlice(pin), nil
+}
+
 // returns the number of the pwm peripheral (0-7)
 func (pwm *pwmGroup) peripheral() uint8 {
 	return uint8((uintptr(unsafe.Pointer(pwm)) - uintptr(unsafe.Pointer(rp.PWM))) / 0x14)
@@ -347,8 +373,16 @@ func pwmGPIOToChannel(gpio Pin) (channel uint8) {
 	return uint8(gpio) & 1
 }
 
-// pwmGPIOToSlice Determine the PWM channel that is attached to the specified GPIO.
-// gpio must be less than 30. Returns the PWM slice number that controls the specified GPIO.
+// pwmGPIOToSlice determines the PWM slice number that controls the specified GPIO pin.
+// For the RP2350B, slices are grouped in the following way:
+// - GPIOs 0–15 and 16–31 map to slices PWM0–PWM7 (8 slices).
+// - GPIOs 32–39 and 40–47 map to slices PWM8–PWM11 (4 slices).
 func pwmGPIOToSlice(gpio Pin) (slicenum uint8) {
-	return (uint8(gpio) >> 1) & 7
+	if gpio < 32 {
+		// First 32 GPIOs (PWM0–PWM7), slice repeats every 16
+		return uint8((gpio / 2) % 8)
+	} else {
+		// GPIOs 32–47 (PWM8–PWM11), slice repeats every 8
+		return uint8(8 + ((gpio-32)/2)%4)
+	}
 }
