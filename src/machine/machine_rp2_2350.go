@@ -1,4 +1,4 @@
-//go:build rp2350
+//go:build rp2350a || rp2350b
 
 package machine
 
@@ -126,11 +126,19 @@ func (p Pin) Configure(config PinConfig) {
 		return
 	}
 	p.init()
-	mask := uint32(1) << p
+	mask := uint32(1) << (p % 32) // Calculate mask based on pin number (adjust for GPIO_HI)
+
 	switch config.Mode {
 	case PinOutput:
 		p.setFunc(fnSIO)
-		rp.SIO.GPIO_OE_SET.Set(mask)
+		if p >= 32 {
+			// For pins 32 and above
+			rp.SIO.GPIO_HI_OE_SET.Set(mask)
+		} else {
+			// For pins below 32
+			rp.SIO.GPIO_OE_SET.Set(mask)
+		}
+
 	case PinInput:
 		p.setFunc(fnSIO)
 		p.pulloff()

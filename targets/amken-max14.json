@@ -1,0 +1,8 @@
+{
+    "inherits": [
+        "rp2350"
+    ],
+    "build-tags": ["amken_max14", "rp2350b"],
+    "serial-port": ["2e8a:000f"],
+    "default-stack-size": 8192
+}

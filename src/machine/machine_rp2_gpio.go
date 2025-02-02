@@ -63,8 +63,14 @@ func (p Pin) PortMaskSet() (*uint32, uint32) {
 
 // set drives the pin high
 func (p Pin) set() {
-	mask := uint32(1) << p
-	rp.SIO.GPIO_OUT_SET.Set(mask)
+	mask := uint32(1) << (p % 32)
+	if p >= 32 {
+		// For HI pins (32 and above)
+		rp.SIO.GPIO_HI_OUT_SET.Set(mask)
+	} else {
+		// For regular pins
+		rp.SIO.GPIO_OUT_SET.Set(mask)
+	}
 }
 
 func (p Pin) PortMaskClear() (*uint32, uint32) {
@@ -73,19 +79,38 @@ func (p Pin) PortMaskClear() (*uint32, uint32) {
 
 // clr drives the pin low
 func (p Pin) clr() {
-	mask := uint32(1) << p
-	rp.SIO.GPIO_OUT_CLR.Set(mask)
+	mask := uint32(1) << (p % 32)
+	if p >= 32 {
+		// For HI pins (32 and above)
+		rp.SIO.GPIO_HI_OUT_CLR.Set(mask)
+	} else {
+		// For regular pins
+		rp.SIO.GPIO_OUT_CLR.Set(mask)
+	}
 }
 
 // xor toggles the pin
 func (p Pin) xor() {
-	mask := uint32(1) << p
-	rp.SIO.GPIO_OUT_XOR.Set(mask)
+	mask := uint32(1) << (p % 32)
+	if p >= 32 {
+		// For HI pins (32 and above)
+		rp.SIO.GPIO_HI_OUT_XOR.Set(mask)
+	} else {
+		// For regular pins
+		rp.SIO.GPIO_OUT_XOR.Set(mask)
+	}
 }
 
 // get returns the pin value
 func (p Pin) get() bool {
-	return rp.SIO.GPIO_IN.HasBits(1 << p)
+	mask := uint32(1) << (p % 32)
+	if p >= 32 {
+		// For HI pins (32 and above)
+		return rp.SIO.GPIO_HI_IN.HasBits(mask)
+	} else {
+		// For regular pins
+		return rp.SIO.GPIO_IN.HasBits(mask)
+	}
 }
 
 func (p Pin) ioCtrl() *volatile.Register32 {
@@ -132,10 +157,16 @@ func (p Pin) setFunc(fn pinFunc) {
 	p.ioCtrl().Set(uint32(fn) << rp.IO_BANK0_GPIO0_CTRL_FUNCSEL_Pos)
 }
 
-// init initializes the gpio pin
+// init initializes the GPIO pin
 func (p Pin) init() {
-	mask := uint32(1) << p
-	rp.SIO.GPIO_OE_CLR.Set(mask)
+	mask := uint32(1) << (p % 32)
+	if p >= 32 {
+		// For HI pins (32 and above)
+		rp.SIO.GPIO_HI_OE_CLR.Set(mask)
+	} else {
+		// For regular pins
+		rp.SIO.GPIO_OE_CLR.Set(mask)
+	}
 	p.clr()
 }
 

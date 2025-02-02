@@ -4,21 +4,11 @@ package machine
 
 import (
 	"device/rp"
-	"errors"
 	"sync"
 )
 
 // ADCChannel is the ADC peripheral mux channel. 0-4.
 type ADCChannel uint8
-
-// ADC channels. Only ADC_TEMP_SENSOR is public. The other channels are accessed via Machine.ADC objects
-const (
-	adc0_CH ADCChannel = iota
-	adc1_CH
-	adc2_CH
-	adc3_CH       // Note: GPIO29 not broken out on pico board
-	adcTempSensor // Internal temperature sensor channel
-)
 
 // Used to serialise ADC sampling
 var adcLock sync.Mutex
@@ -54,24 +44,6 @@ func (a ADC) Get() uint16 {
 	}
 	// Not an ADC pin!
 	return 0
-}
-
-// GetADCChannel returns the channel associated with the ADC pin.
-func (a ADC) GetADCChannel() (c ADCChannel, err error) {
-	err = nil
-	switch a.Pin {
-	case ADC0:
-		c = adc0_CH
-	case ADC1:
-		c = adc1_CH
-	case ADC2:
-		c = adc2_CH
-	case ADC3:
-		c = adc3_CH
-	default:
-		err = errors.New("no ADC channel for pin value")
-	}
-	return c, err
 }
 
 // Configure sets the channel's associated pin to analog input mode.
@@ -125,22 +97,4 @@ func ReadTemperature() (millicelsius int32) {
 func waitForReady() {
 	for !rp.ADC.CS.HasBits(rp.ADC_CS_READY) {
 	}
-}
-
-// The Pin method returns the GPIO Pin associated with the ADC mux channel, if it has one.
-func (c ADCChannel) Pin() (p Pin, err error) {
-	err = nil
-	switch c {
-	case adc0_CH:
-		p = ADC0
-	case adc1_CH:
-		p = ADC1
-	case adc2_CH:
-		p = ADC2
-	case adc3_CH:
-		p = ADC3
-	default:
-		err = errors.New("no associated pin for channel")
-	}
-	return p, err
 }

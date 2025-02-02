@@ -1,4 +1,4 @@
-//go:build rp2040 || rp2350a || ae_rp2040 || badger2040 || challenger_rp2040 || feather_rp2040 || gopher_badge || kb2040 || macropad_rp2040 || nano_rp2040 || pico || qtpy_rp2040 || thingplus_rp2040 || thumby || tufty2040 || waveshare_rp2040_zero || xiao_rp2040
+//go:build rp2350b || amken_max14
 
 package machine
 
@@ -34,10 +34,32 @@ const (
 	GPIO27 Pin = 27 // peripherals: PWM5 channel B
 	GPIO28 Pin = 28 // peripherals: PWM6 channel A
 	GPIO29 Pin = 29 // peripherals: PWM6 channel B
+	GPIO30 Pin = 30 // peripherals: PWM7 channel A
+	GPIO31 Pin = 31 // peripherals: PWM7 channel B
+	GPIO32 Pin = 32 // peripherals: PWM8 channel A
+	GPIO33 Pin = 33 // peripherals: PWM8 channel B
+	GPIO34 Pin = 34 // peripherals: PWM9 channel A
+	GPIO35 Pin = 35 // peripherals: PWM9 channel B
+	GPIO36 Pin = 36 // peripherals: PWM10 channel A
+	GPIO37 Pin = 37 // peripherals: PWM10 channel B
+	GPIO38 Pin = 38 // peripherals: PWM11 channel A
+	GPIO39 Pin = 39 // peripherals: PWM11 channel B
+	GPIO40 Pin = 40 // peripherals: PWM8 channel A
+	GPIO41 Pin = 41 // peripherals: PWM8 channel B
+	GPIO42 Pin = 42 // peripherals: PWM9 channel A
+	GPIO43 Pin = 43 // peripherals: PWM9 channel B
+	GPIO44 Pin = 44 // peripherals: PWM10 channel A
+	GPIO45 Pin = 45 // peripherals: PWM10 channel B
+	GPIO46 Pin = 46 // peripherals: PWM11 channel A
+	GPIO47 Pin = 47 // peripherals: PWM11 channel B
 
 	// Analog pins
-	ADC0 Pin = GPIO26
-	ADC1 Pin = GPIO27
-	ADC2 Pin = GPIO28
-	ADC3 Pin = GPIO29
+	ADC0 Pin = GPIO40
+	ADC1 Pin = GPIO41
+	ADC2 Pin = GPIO42
+	ADC3 Pin = GPIO43
+	ADC4 Pin = GPIO44
+	ADC5 Pin = GPIO45
+	ADC6 Pin = GPIO46
+	ADC7 Pin = GPIO47
 )
