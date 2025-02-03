@@ -15,8 +15,8 @@ const (
 	I2C0_SDA_PIN = GPIO32
 	I2C0_SCL_PIN = GPIO33
 
-	I2C1_SDA_PIN = NoPin
-	I2C1_SCL_PIN = NoPin
+	I2C1_SDA_PIN = GPIO38
+	I2C1_SCL_PIN = GPIO39
 )
 
 // SPI default pins
@@ -93,6 +93,15 @@ const (
 const (
 	A2D1 = ADC6
 	A2D2 = ADC5
+)
+
+const (
+	END_STOP1 = GPIO44
+	END_STOP2 = GPIO41
+	END_STOP3 = GPIO37
+	END_STOP4 = GPIO36
+	END_STOP5 = GPIO35
+	END_STOP6 = GPIO34
 )
 
 // USB identifiers
