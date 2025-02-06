@@ -33,9 +33,6 @@ const (
 	GP29 Pin = GPIO29
 )
 
-// System clock configuration
-var clockCfg = defaultSystemClockCfg
-
 // I2C Default pins on Raspberry Pico.
 const (
 	I2C0_SDA_PIN = GP4

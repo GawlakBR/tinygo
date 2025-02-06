@@ -75,9 +75,6 @@ const (
 	SPI1_SDI_PIN Pin = D12
 )
 
-// System clock configuration
-var clockCfg = defaultSystemClockCfg
-
 // UART pins
 const (
 	UART0_TX_PIN = GPIO0

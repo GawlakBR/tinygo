@@ -6,9 +6,6 @@ const (
 	LED = GPIO24
 )
 
-// System clock configuration
-var clockCfg = defaultSystemClockCfg
-
 // GPIO Pins
 const (
 	D5  = GPIO2

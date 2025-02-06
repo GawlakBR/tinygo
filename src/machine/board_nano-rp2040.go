@@ -95,9 +95,6 @@ const (
 	NINA_SOFT_FLOWCONTROL = false
 )
 
-// System clock configuration
-var clockCfg = defaultSystemClockCfg
-
 // USB CDC identifiers
 // https://github.com/arduino/ArduinoCore-mbed/blob/master/variants/NANO_RP2040_CONNECT/pins_arduino.h
 const (

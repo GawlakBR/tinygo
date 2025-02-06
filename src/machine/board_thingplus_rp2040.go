@@ -2,9 +2,6 @@
 
 package machine
 
-// System clock configuration
-var clockCfg = defaultSystemClockCfg
-
 // GPIO Pins
 const (
 	GP0 Pin = GPIO0 // TX

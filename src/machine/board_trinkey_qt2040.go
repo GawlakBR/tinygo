@@ -13,9 +13,6 @@
 
 package machine
 
-// System clock configuration
-var clockCfg = defaultSystemClockCfg
-
 // Onboard LEDs
 const (
 	NEOPIXEL = GPIO27

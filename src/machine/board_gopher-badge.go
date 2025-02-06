@@ -61,9 +61,6 @@ const (
 	SPI1_SDI_PIN Pin = NoPin
 )
 
-// System clock configuration
-var clockCfg = defaultSystemClockCfg
-
 // USB CDC identifiers
 const (
 	usb_STRING_PRODUCT      = "Gopher Badge"

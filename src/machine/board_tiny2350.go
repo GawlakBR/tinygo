@@ -29,9 +29,6 @@ const (
 	LED           = LED_RED
 )
 
-// System clock configuration
-var clockCfg = defaultSystemClockCfg
-
 // I2C Default pins on Tiny2350.
 const (
 	I2C0_SDA_PIN = GP12

@@ -68,9 +68,6 @@ SPI0_CS_PIN  Pin = QSPI_CS
 */
 )
 
-// System clock configuration
-var clockCfg = defaultSystemClockCfg
-
 // USB CDC identifiers
 const (
 	usb_STRING_PRODUCT      = "Badger 2040 W"

@@ -6,9 +6,6 @@ const (
 	NeopixelCount = 12
 )
 
-// System clock configuration
-var clockCfg = defaultSystemClockCfg
-
 const (
 	SWITCH = GPIO0
 	BUTTON = GPIO0

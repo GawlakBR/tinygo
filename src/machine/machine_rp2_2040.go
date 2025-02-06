@@ -114,19 +114,20 @@ const (
 )
 
 // Clock frequency and PLL configuration
-var defaultSystemClockCfg = systemClockCfg{
-	xoscFreq: 12,
+// Note that the system frequency is configured for 125 MHz to allow clk_peri to run at full speed
+const (
+	xoscFreq uint32 = 12
 
-	pllSysFreq:     125 * MHz,
-	pllSysVcoFreq:  1500 * MHz,
-	pllSysPostDiv1: 6,
-	pllSysPostDiv2: 2,
+	pllSysFreq     uint32 = 125 * MHz
+	pllSysVcoFreq  uint32 = 1500 * MHz
+	pllSysPostDiv1 uint32 = 5
+	pllSysPostDiv2 uint32 = 2
 
-	pllUSBFreq:     48 * MHz,
-	pllUSBVcoFreq:  480 * MHz,
-	pllUSBPostDiv1: 5,
-	pllUSBPostDiv2: 2,
-}
+	pllUSBFreq     uint32 = 48 * MHz
+	pllUSBVcoFreq  uint32 = 480 * MHz
+	pllUSBPostDiv1 uint32 = 5
+	pllUSBPostDiv2 uint32 = 2
+)
 
 // Configure configures the gpio pin as per mode.
 func (p Pin) Configure(config PinConfig) {
@@ -199,7 +200,7 @@ func (clks *clocksType) initRTC() {
 	crtc := clks.clock(clkRTC)
 	crtc.configure(0, // No GLMUX
 		rp.CLOCKS_CLK_RTC_CTRL_AUXSRC_CLKSRC_PLL_USB,
-		clockCfg.pllUSBFreq,
+		pllUSBFreq,
 		46875)
 }
 
