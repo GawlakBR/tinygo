@@ -209,7 +209,7 @@ func (clks *clocksType) initRTC() {} // No RTC on RP2350.
 
 func (clks *clocksType) initTicks() {
 	rp.TICKS.SetTIMER0_CTRL_ENABLE(0)
-	rp.TICKS.SetTIMER0_CYCLES(12)
+	rp.TICKS.SetTIMER0_CYCLES(uint32(xoscFreq))
 	rp.TICKS.SetTIMER0_CTRL_ENABLE(1)
 }
 
