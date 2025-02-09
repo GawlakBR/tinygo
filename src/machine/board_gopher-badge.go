@@ -61,12 +61,6 @@ const (
 	SPI1_SDI_PIN Pin = NoPin
 )
 
-// Onboard crystal oscillator frequency, in MHz.
-func init() {
-	SysClockFrequency = Freq133MHz
-	xoscFreq = Freq12MHz
-}
-
 // USB CDC identifiers
 const (
 	usb_STRING_PRODUCT      = "Gopher Badge"
@@ -89,3 +83,8 @@ const (
 )
 
 var DefaultUART = UART1
+
+func init() {
+	SysClockFrequency = Freq133MHz
+	xoscFreq = Freq12MHz
+}
