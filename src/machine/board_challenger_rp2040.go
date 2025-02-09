@@ -2,11 +2,13 @@
 
 package machine
 
+func init() {
+	SysClockFrequency = Freq133MHz
+	xoscFreq = Freq12MHz
+}
+
 const (
 	LED = GPIO24
-
-	// Onboard crystal oscillator frequency, in MHz.
-	xoscFreq = 12 // MHz
 )
 
 // GPIO Pins

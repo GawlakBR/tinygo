@@ -1,4 +1,4 @@
-//go:build rp2350b || amken_max14
+//go:build rp2350b
 
 package machine
 

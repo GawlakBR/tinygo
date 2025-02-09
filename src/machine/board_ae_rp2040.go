@@ -2,6 +2,11 @@
 
 package machine
 
+func init() {
+	SysClockFrequency = Freq133MHz
+	xoscFreq = Freq12MHz
+}
+
 // GPIO pins
 const (
 	GP0  Pin = GPIO0
@@ -31,9 +36,6 @@ const (
 	GP27 Pin = GPIO27
 	GP28 Pin = GPIO28
 	GP29 Pin = GPIO29
-
-	// Onboard crystal oscillator frequency, in MHz.
-	xoscFreq = 12 // MHz
 )
 
 // I2C Default pins on Raspberry Pico.

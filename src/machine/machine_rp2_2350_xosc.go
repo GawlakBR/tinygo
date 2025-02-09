@@ -1,4 +1,4 @@
-//go:build rp2040 || rp2350
+//go:build rp2350
 
 package machine
 
@@ -28,12 +28,26 @@ var xosc = (*xoscType)(unsafe.Pointer(rp.XOSC))
 //
 // This function will block until the crystal oscillator has stabilised.
 func (osc *xoscType) init() {
-	// Assumes 1-15 MHz input
-	if xoscFreq > 15 {
-		panic("xosc frequency cannot be greater than 15MHz")
-	}
-	osc.ctrl.Set(rp.XOSC_CTRL_FREQ_RANGE_1_15MHZ)
 
+	// Choose the correct FREQ_RANGE value from the enumerations.
+	// Note: these ranges come from the RP2 datasheet’s "XOSC_CTRL FREQ_RANGE" table:
+	//   0xaa0 => 1..15 MHz
+	//   0xaa1 => 10..30 MHz
+	//   0xaa2 => 25..60 MHz
+	//   0xaa3 => 40..100 MHz
+	var ctrlVal uint32
+	if xoscFreq <= 15 {
+		ctrlVal = rp.XOSC_CTRL_FREQ_RANGE_1_15MHZ
+	} else if xoscFreq <= 30 {
+		ctrlVal = rp.XOSC_CTRL_FREQ_RANGE_10_30MHZ
+	} else if xoscFreq <= 60 {
+		ctrlVal = rp.XOSC_CTRL_FREQ_RANGE_25_60MHZ
+	} else if xoscFreq <= 100 {
+		ctrlVal = rp.XOSC_CTRL_FREQ_RANGE_40_100MHZ
+	} else {
+		panic("unsupported freq")
+	}
+	osc.ctrl.Set(ctrlVal)
 	// Set xosc startup delay
 	delay := (((xoscFreq * MHz) / 1000) + 128) / 256 * XOSC_STARTUP_DELAY_MULTIPLIER
 	osc.startup.Set(uint32(delay))

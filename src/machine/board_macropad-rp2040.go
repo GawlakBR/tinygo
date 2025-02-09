@@ -4,9 +4,6 @@ package machine
 
 const (
 	NeopixelCount = 12
-
-	// Onboard crystal oscillator frequency, in MHz.
-	xoscFreq = 12 // MHz
 )
 
 const (
@@ -85,3 +82,8 @@ var (
 	usb_VID uint16 = 0x239A
 	usb_PID uint16 = 0x8107
 )
+
+func init() {
+	SysClockFrequency = Freq133MHz
+	xoscFreq = Freq12MHz
+}

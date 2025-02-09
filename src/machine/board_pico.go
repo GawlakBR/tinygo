@@ -33,9 +33,6 @@ const (
 
 	// Onboard LED
 	LED Pin = GPIO25
-
-	// Onboard crystal oscillator frequency, in MHz.
-	xoscFreq = 12 // MHz
 )
 
 // I2C Default pins on Raspberry Pico.
@@ -86,3 +83,8 @@ var (
 	usb_VID uint16 = 0x2E8A
 	usb_PID uint16 = 0x000A
 )
+
+func init() {
+	SysClockFrequency = Freq133MHz
+	xoscFreq = Freq12MHz
+}

@@ -5,18 +5,26 @@
 
 package machine
 
-const (
-	// Onboard crystal oscillator frequency, in MHz.
-	xoscFreq = 12 // MHz
-)
+//const (
+//	// Onboard crystal oscillator frequency, in MHz.
+//	xoscFreq uint32 = 12 // MHz
+//)
+
+func init() {
+	SysClockFrequency = Freq240MHz
+	xoscFreq = Freq12MHz
+}
 
 // I2C Default pins on Raspberry Pico.
 const (
-	I2C0_SDA_PIN = GPIO32
-	I2C0_SCL_PIN = GPIO33
+	I2C0_SDA_PIN = NoPin
+	I2C0_SCL_PIN = NoPin
 
-	I2C1_SDA_PIN = GPIO38
-	I2C1_SCL_PIN = GPIO39
+	I2C1_SDA_PIN = GPIO34
+	I2C1_SCL_PIN = GPIO35
+
+	I2C_SDA_PIN = I2C1_SDA_PIN
+	I2C_SCL_PIN = I2C1_SCL_PIN
 )
 
 // SPI default pins
@@ -47,29 +55,21 @@ const (
 var DefaultUART = UART0
 
 var StepperCS = [8]Pin{
-	GPIO47, GPIO8, GPIO11, GPIO21,
+	GPIO36, GPIO37, GPIO38, GPIO39,
 	GPIO20, GPIO24, GPIO27, GPIO28,
 }
 
 const (
 	COMM_CS_PIN = GPIO1
-	CAN_CS_PIN  = GPIO4
-	CAN_INT_PIN = GPIO5
 
-	MOTOR1_CS = GPIO47
-	MOTOR2_CS = GPIO8
-	MOTOR3_CS = GPIO11
-	MOTOR4_CS = GPIO21
+	MOTOR1_CS = GPIO36
+	MOTOR2_CS = GPIO37
+	MOTOR3_CS = GPIO38
+	MOTOR4_CS = GPIO39
 	MOTOR5_CS = GPIO20
 	MOTOR6_CS = GPIO24
 	MOTOR7_CS = GPIO27
 	MOTOR8_CS = GPIO28
-
-	IO_EXP_RST_PIN  = GPIO31
-	IO_EXP_INTA_PIN = GPIO7
-	IO_EXP_INTB_PIN = GPIO6
-	IO_EXP_SCL_PIN  = GPIO33
-	IO_EXP_SDA_PIN  = GPIO32
 
 	MOTOR1_DIR_PIN = GPIO9
 	MOTOR2_DIR_PIN = GPIO13
@@ -96,12 +96,23 @@ const (
 )
 
 const (
-	END_STOP1 = GPIO44
-	END_STOP2 = GPIO41
-	END_STOP3 = GPIO37
-	END_STOP4 = GPIO36
-	END_STOP5 = GPIO35
-	END_STOP6 = GPIO34
+	END_STOP_MUX1 = GPIO33
+	END_STOP_MUX2 = GPIO32
+	END_STOP_MUX3 = GPIO31
+)
+
+const (
+	PWM_5V_1         = GPIO8
+	PWM_5V_2         = GPIO11
+	LOWPWR_PWM_24V_1 = GPIO21
+	LOWPWR_PWM_24V_2 = GPIO47
+	HIPWR_PWM_24V    = GPIO7
+	MEDPWR_PWM_24V   = GPIO6
+)
+
+const (
+	NEOPIXEL_1 = GPIO41
+	NEOPIXEL_2 = GPIO44
 )
 
 // USB identifiers

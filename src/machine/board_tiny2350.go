@@ -27,9 +27,6 @@ const (
 	LED_GREEN Pin = GPIO19
 	LED_BLUE  Pin = GPIO20
 	LED           = LED_RED
-
-	// Onboard crystal oscillator frequency, in MHz.
-	xoscFreq = 12 // MHz
 )
 
 // I2C Default pins on Tiny2350.
@@ -80,3 +77,8 @@ var (
 	usb_VID uint16 = 0x2E8A
 	usb_PID uint16 = 0x000F
 )
+
+func init() {
+	SysClockFrequency = Freq150MHz
+	xoscFreq = Freq12MHz
+}

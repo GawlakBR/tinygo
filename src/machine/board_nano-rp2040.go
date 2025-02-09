@@ -96,9 +96,10 @@ const (
 )
 
 // Onboard crystal oscillator frequency, in MHz.
-const (
-	xoscFreq = 12 // MHz
-)
+func init() {
+	SysClockFrequency = Freq133MHz
+	xoscFreq = Freq12MHz
+}
 
 // USB CDC identifiers
 // https://github.com/arduino/ArduinoCore-mbed/blob/master/variants/NANO_RP2040_CONNECT/pins_arduino.h

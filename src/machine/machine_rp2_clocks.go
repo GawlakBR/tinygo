@@ -9,8 +9,88 @@ import (
 	"unsafe"
 )
 
+var SysClockFrequency SysFrequency // in MHz
+var xoscFreq xtalFreq
+
+type SysFrequency uint32
+type xtalFreq uint32
+
+const (
+	Freq8MHz   xtalFreq     = 8
+	Freq12MHz  xtalFreq     = 12
+	Freq20MHz  xtalFreq     = 20
+	Freq24MHz  xtalFreq     = 24
+	Freq25MHz  xtalFreq     = 25
+	Freq40MHz  xtalFreq     = 40
+	Freq48MHz  SysFrequency = 48  // USB
+	Freq50MHz  SysFrequency = 50  // Good PWM Frequency
+	Freq100MHz SysFrequency = 100 // Good PWM Frequency
+	Freq125MHz SysFrequency = 125 // Valid frequency
+	Freq133MHz SysFrequency = 133 // Valid frequency
+	Freq150MHz SysFrequency = 150 // Valid frequency
+	Freq175MHz SysFrequency = 175 // Valid frequency
+	Freq200MHz SysFrequency = 200 // Good PWM Frequency
+	Freq225MHz SysFrequency = 225 // Valid frequency
+	Freq240MHz SysFrequency = 240 // Good PWM Frequency
+	Freq250MHz SysFrequency = 250 // Good PWM Frequency
+	Freq275MHz SysFrequency = 275 // Valid frequency
+	Freq300MHz SysFrequency = 300 //  Good PWM Frequency
+)
+
+type PLLConfig struct {
+	xoscFreq uint32
+	sysFreq  SysFrequency
+	refdiv   uint32
+	fbdiv    uint32
+	postDiv1 uint32
+	postDiv2 uint32
+}
+
+// Flattened map with composite keys of frequencies drieved from SDK vcocalc.py
+// [50,100,125,133,150,175,200,225,240,250,275,300].
+// These frequencies are stable at core voltage of 1.1v
+var pllConfigMap = map[[2]uint32]PLLConfig{
+	{12, 48}:  {12, 48, 1, 120, 6, 5},
+	{12, 50}:  {12, 50, 1, 125, 6, 5},
+	{12, 100}: {12, 100, 1, 125, 5, 3},
+	{12, 125}: {12, 125, 1, 125, 6, 2},
+	{12, 133}: {12, 133, 1, 133, 6, 2},
+	{12, 150}: {12, 150, 1, 125, 5, 2},
+	{12, 175}: {12, 175, 2, 175, 6, 1},
+	{12, 200}: {12, 200, 1, 100, 6, 1},
+	{12, 225}: {12, 225, 2, 225, 6, 1},
+	{12, 240}: {12, 240, 1, 120, 6, 1},
+	{12, 250}: {12, 250, 1, 125, 6, 1},
+	{12, 300}: {12, 300, 1, 125, 5, 1},
+	{40, 48}:  {40, 48, 1, 36, 6, 5},
+	{40, 50}:  {40, 50, 2, 75, 6, 5},
+	{40, 100}: {40, 100, 1, 40, 4, 4},
+	{40, 125}: {40, 125, 2, 75, 6, 2},
+	{40, 133}: {40, 133, 4, 133, 5, 2},
+	{40, 150}: {40, 150, 2, 75, 5, 2},
+	{40, 200}: {40, 200, 1, 40, 4, 2},
+	{40, 225}: {40, 225, 8, 315, 7, 1},
+	{40, 240}: {40, 240, 1, 36, 6, 1},
+	{40, 250}: {40, 250, 2, 75, 6, 1},
+	{40, 300}: {40, 300, 2, 75, 5, 1},
+}
+
+func getClockConfig(xoscFreq, sysMHz uint32) (PLLConfig, uint32) {
+	// Default configuration as fallback
+	defaultConfig := PLLConfig{12, 48, 1, 120, 6, 5}
+	cfg, exists := pllConfigMap[[2]uint32{xoscFreq, sysMHz}]
+	if !exists {
+		return defaultConfig, calculateVcoFreq(defaultConfig)
+	}
+	return cfg, calculateVcoFreq(cfg)
+}
+
+func calculateVcoFreq(cfg PLLConfig) uint32 {
+	return (cfg.xoscFreq / cfg.refdiv) * cfg.fbdiv * MHz
+}
+
 func CPUFrequency() uint32 {
-	return 125 * MHz
+	return uint32(SysClockFrequency * MHz)
 }
 
 // Returns the period of a clock cycle for the raspberry pi pico in nanoseconds.
@@ -148,7 +228,7 @@ func (clk *clock) configure(src, auxsrc, srcFreq, freq uint32) {
 // Must be called before any other clock function.
 func (clks *clocksType) init() {
 	// Start the watchdog tick
-	Watchdog.startTick(xoscFreq)
+	Watchdog.startTick(uint32(xoscFreq))
 
 	// Disable resus that may be enabled from previous software
 	rp.CLOCKS.SetCLK_SYS_RESUS_CTRL_CLEAR(0)
@@ -164,28 +244,32 @@ func (clks *clocksType) init() {
 	clks.clk[clkRef].ctrl.ClearBits(rp.CLOCKS_CLK_REF_CTRL_SRC_Msk)
 	for !clks.clk[clkRef].selected.HasBits(0x1) {
 	}
+	//// Configure PLLs
+	cfg, vco := getClockConfig(uint32(xoscFreq), uint32(SysClockFrequency))
+	pllSys.init(cfg.refdiv, vco, cfg.postDiv1, cfg.postDiv2)
+	// Configure USB
+	cfg, vco = getClockConfig(uint32(xoscFreq), 48)
+	pllUSB.init(cfg.refdiv, vco, cfg.postDiv1, cfg.postDiv2)
 
-	// Configure PLLs
-	//                   REF     FBDIV VCO            POSTDIV
-	// pllSys: 12 / 1 = 12MHz * 125 = 1500MHZ / 6 / 2 = 125MHz
-	// pllUSB: 12 / 1 = 12MHz * 40  = 480 MHz / 5 / 2 =  48MHz
-	pllSys.init(1, 1500*MHz, 6, 2)
-	pllUSB.init(1, 480*MHz, 5, 2)
-
+	// We need to ensure clk_ref <= 25 MHz. We'll compute an integer divider:
+	// minimal integer divisor so that (xoscFreq / refDiv) <= 25
+	// i.e. refDiv >= xoscFreq / 25
+	// We'll do a "ceiling" integer division: (xoscFreq + 24)/25
+	refDiv := (xoscFreq + 24) / 25
+	var refFreq = xoscFreq / refDiv
 	// Configure clocks
-	// clkRef = xosc (12MHz) / 1 = 12MHz
 	cref := clks.clock(clkRef)
 	cref.configure(rp.CLOCKS_CLK_REF_CTRL_SRC_XOSC_CLKSRC,
 		0, // No aux mux
-		12*MHz,
-		12*MHz)
+		uint32(xoscFreq),
+		uint32(refFreq))
 
-	// clkSys = pllSys (125MHz) / 1 = 125MHz
+	// Configure clkSys
 	csys := clks.clock(clkSys)
 	csys.configure(rp.CLOCKS_CLK_SYS_CTRL_SRC_CLKSRC_CLK_SYS_AUX,
 		rp.CLOCKS_CLK_SYS_CTRL_AUXSRC_CLKSRC_PLL_SYS,
-		125*MHz,
-		125*MHz)
+		uint32(SysClockFrequency*MHz),
+		uint32(SysClockFrequency*MHz))
 
 	// clkUSB = pllUSB (48MHz) / 1 = 48MHz
 	cusb := clks.clock(clkUSB)
@@ -204,13 +288,19 @@ func (clks *clocksType) init() {
 	clks.initRTC()
 
 	// clkPeri = clkSys. Used as reference clock for Peripherals.
-	// No dividers so just select and enable.
-	// Normally choose clkSys or clkUSB.
+	// Cap at 150MHZ
+	periFreq := SysClockFrequency
+	if SysClockFrequency > 150 {
+		periFreq = 150
+	}
+
 	cperi := clks.clock(clkPeri)
-	cperi.configure(0,
+	cperi.configure(
+		0, // no glitchless mux
 		rp.CLOCKS_CLK_PERI_CTRL_AUXSRC_CLK_SYS,
-		125*MHz,
-		125*MHz)
+		uint32(SysClockFrequency*MHz), // source is clk_sys
+		uint32(periFreq*MHz),          // final freq is min(sysClkMHz, 150)
+	)
 
 	clks.initTicks()
 }
