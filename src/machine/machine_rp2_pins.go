@@ -34,10 +34,4 @@ const (
 	GPIO27 Pin = 27 // peripherals: PWM5 channel B
 	GPIO28 Pin = 28 // peripherals: PWM6 channel A
 	GPIO29 Pin = 29 // peripherals: PWM6 channel B
-
-	// Analog pins
-	ADC0 Pin = GPIO26
-	ADC1 Pin = GPIO27
-	ADC2 Pin = GPIO28
-	ADC3 Pin = GPIO29
 )
