@@ -297,7 +297,7 @@ jobs:
           - goarch: arm
             toolchain: arm-linux-gnueabihf
             libc: armhf
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: build-linux
     steps:
       - name: Checkout
