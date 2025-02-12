@@ -2,6 +2,8 @@
 
 package machine
 
+// RP2350B has additional pins.
+
 const (
 	GPIO30 Pin = 30 // peripherals: PWM7 channel A
 	GPIO31 Pin = 31 // peripherals: PWM7 channel B
@@ -35,4 +37,12 @@ const (
 	ADC7 Pin = GPIO47
 
 	thermADC = 48
+)
+
+// Additional PWMs on the RP2350B.
+var (
+	PWM8  = getPWMGroup(8)
+	PWM9  = getPWMGroup(9)
+	PWM10 = getPWMGroup(10)
+	PWM11 = getPWMGroup(11)
 )
