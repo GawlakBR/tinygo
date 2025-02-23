@@ -409,6 +409,12 @@ type Type interface {
 	// OverflowUint reports whether the uint64 x cannot be represented by type t.
 	// It panics if t's Kind is not Uint, Uintptr, Uint8, Uint16, Uint32, or Uint64.
 	OverflowUint(x uint64) bool
+
+	// CanSeq reports whether a [Value] with this type can be iterated over using [Value.Seq].
+	CanSeq() bool
+
+	// CanSeq2 reports whether a [Value] with this type can be iterated over using [Value.Seq2].
+	CanSeq2() bool
 }
 
 // Constants for the 'meta' byte.
@@ -1181,6 +1187,32 @@ func (t rawType) OverflowUint(x uint64) bool {
 		return x != trunc
 	}
 	panic("reflect: OverflowUint of non-uint type")
+}
+
+func (t rawType) CanSeq() bool {
+	switch t.Kind() {
+	case Int8, Int16, Int32, Int64, Int, Uint8, Uint16, Uint32, Uint64, Uint, Uintptr, Array, Slice, Chan, String, Map:
+		return true
+	case Func:
+		return false // TODO: implement canRangeFunc
+		// return canRangeFunc(&t.)
+	case Pointer:
+		return t.Elem().Kind() == Array
+	}
+	return false
+}
+
+func (t rawType) CanSeq2() bool {
+	switch t.Kind() {
+	case Array, Slice, String, Map:
+		return true
+	case Func:
+		return false // TODO: implement canRangeFunc2
+		// return canRangeFunc2(&t.t)
+	case Pointer:
+		return t.Elem().Kind() == Array
+	}
+	return false
 }
 
 func (t rawType) Method(i int) Method {
