@@ -220,7 +220,7 @@ func negativeShiftPanic() {
 
 // Panic when there is a divide by zero.
 func divideByZeroPanic() {
-	runtimePanicAt(returnAddress(0), "divide by zero")
+	_panic(divideError)
 }
 
 func blockingPanic() {
