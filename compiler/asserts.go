@@ -31,7 +31,7 @@ func (b *builder) createLookupBoundsCheck(arrayLen, index llvm.Value) {
 
 	// Now do the bounds check: index >= arrayLen
 	outOfBounds := b.CreateICmp(llvm.IntUGE, index, arrayLen, "")
-	b.createRuntimeAssert(outOfBounds, "lookup", "lookupPanic", false)
+	b.createRuntimeAssert(outOfBounds, "lookup", "lookupPanic", true)
 }
 
 // createSliceBoundsCheck emits a bounds check before a slicing operation to make
@@ -230,7 +230,7 @@ func (b *builder) createDivideByZeroCheck(y llvm.Value) {
 
 // createRuntimeAssert is a common function to create a new branch on an assert
 // bool, calling an assert func if the assert value is true (1).
-func (b *builder) createRuntimeAssert(assert llvm.Value, blockPrefix, assertFunc string, invoke bool) {
+func (b *builder) createRuntimeAssert(assert llvm.Value, blockPrefix, assertFunc string, isInvoke bool) {
 	// Check whether we can resolve this check at compile time.
 	if !assert.IsAConstantInt().IsNil() {
 		val := assert.ZExtValue()
@@ -245,23 +245,17 @@ func (b *builder) createRuntimeAssert(assert llvm.Value, blockPrefix, assertFunc
 	// current insert position.
 	faultBlock := b.ctx.AddBasicBlock(b.llvmFn, blockPrefix+".throw")
 	nextBlock := b.insertBasicBlock(blockPrefix + ".next")
-	b.blockExits[b.currentBlock] = nextBlock // adjust outgoing block for phi nodes
 
 	// Now branch to the out-of-bounds or the regular block.
 	b.CreateCondBr(assert, faultBlock, nextBlock)
 
 	// Fail: the assert triggered so panic.
 	b.SetInsertPointAtEnd(faultBlock)
-	if invoke {
-		// This runtime panic is recoverable.
-		b.createRuntimeInvoke(assertFunc, nil, "")
-	} else {
-		// This runtime panic is not recoverable.
-		b.createRuntimeCall(assertFunc, nil, "")
-	}
+	b.createRuntimeCallCommon(assertFunc, nil, "", isInvoke)
 	b.CreateUnreachable()
 
 	// Ok: assert didn't trigger so continue normally.
+	b.blockExits[b.currentBlock] = nextBlock // adjust outgoing block for phi nodes
 	b.SetInsertPointAtEnd(nextBlock)
 }
 

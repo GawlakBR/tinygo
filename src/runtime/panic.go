@@ -187,7 +187,7 @@ func nilMapPanic() {
 
 // Panic when trying to access an array or slice out of bounds.
 func lookupPanic() {
-	runtimePanicAt(returnAddress(0), "index out of range")
+	_panic(lookupError)
 }
 
 // Panic when trying to slice a slice out of bounds.

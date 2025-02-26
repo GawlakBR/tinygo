@@ -383,6 +383,7 @@ TEST_PACKAGES_LINUX := \
 	crypto/hmac \
 	debug/dwarf \
 	debug/plan9obj \
+	encoding/binary \
 	go/constant \
 	image \
 	io/ioutil \
@@ -406,6 +407,7 @@ TEST_PACKAGES_WINDOWS := \
 	compress/flate \
 	crypto/des \
 	crypto/hmac \
+	encoding/binary \
 	go/constant \
 	math/bits \
 	strconv \
