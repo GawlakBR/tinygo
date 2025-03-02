@@ -208,3 +208,16 @@ func (clks *clocksType) initTicks() {} // No ticks on RP2040
 func (wd *watchdogImpl) startTick(cycles uint32) {
 	rp.WATCHDOG.TICK.Set(cycles | rp.WATCHDOG_TICK_ENABLE)
 }
+
+func adjustCoreVoltage() bool {
+	if cpuFreq <= 133*MHz {
+		return false
+	}
+	// The rp2040 is certified to run at 200MHz with the
+	// core voltage set to 1150mV.
+	const targetVoltage = 1150
+	// 0b0101 maps to 800mV and each step is 50mV.
+	const vreg = 0b0101 + (targetVoltage-800)/50
+	rp.VREG_AND_CHIP_RESET.SetVREG_VSEL(vreg)
+	return true
+}
