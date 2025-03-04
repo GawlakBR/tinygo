@@ -65,7 +65,7 @@ package reflect
 
 import (
 	"internal/gclayout"
-	"internal/itoa"
+	"internal/reflectlite"
 	"unsafe"
 )
 
@@ -78,116 +78,47 @@ const (
 	structFieldFlagIsEmbedded
 )
 
-type Kind uint8
+type Kind = reflectlite.Kind
 
-// Copied from reflect/type.go
-// https://golang.org/src/reflect/type.go?s=8302:8316#L217
-// These constants must match basicTypes and the typeKind* constants in
-// compiler/interface.go
 const (
-	Invalid Kind = iota
-	Bool
-	Int
-	Int8
-	Int16
-	Int32
-	Int64
-	Uint
-	Uint8
-	Uint16
-	Uint32
-	Uint64
-	Uintptr
-	Float32
-	Float64
-	Complex64
-	Complex128
-	String
-	UnsafePointer
-	Chan
-	Interface
-	Pointer
-	Slice
-	Array
-	Func
-	Map
-	Struct
+	Invalid       Kind = reflectlite.Invalid
+	Bool          Kind = reflectlite.Bool
+	Int           Kind = reflectlite.Int
+	Int8          Kind = reflectlite.Int8
+	Int16         Kind = reflectlite.Int16
+	Int32         Kind = reflectlite.Int32
+	Int64         Kind = reflectlite.Int64
+	Uint          Kind = reflectlite.Uint
+	Uint8         Kind = reflectlite.Uint8
+	Uint16        Kind = reflectlite.Uint16
+	Uint32        Kind = reflectlite.Uint32
+	Uint64        Kind = reflectlite.Uint64
+	Uintptr       Kind = reflectlite.Uintptr
+	Float32       Kind = reflectlite.Float32
+	Float64       Kind = reflectlite.Float64
+	Complex64     Kind = reflectlite.Complex64
+	Complex128    Kind = reflectlite.Complex128
+	String        Kind = reflectlite.String
+	UnsafePointer Kind = reflectlite.UnsafePointer
+	Chan          Kind = reflectlite.Chan
+	Interface     Kind = reflectlite.Interface
+	Pointer       Kind = reflectlite.Pointer
+	Slice         Kind = reflectlite.Slice
+	Array         Kind = reflectlite.Array
+	Func          Kind = reflectlite.Func
+	Map           Kind = reflectlite.Map
+	Struct        Kind = reflectlite.Struct
 )
 
 // Ptr is the old name for the Pointer kind.
 const Ptr = Pointer
 
-func (k Kind) String() string {
-	switch k {
-	case Invalid:
-		return "invalid"
-	case Bool:
-		return "bool"
-	case Int:
-		return "int"
-	case Int8:
-		return "int8"
-	case Int16:
-		return "int16"
-	case Int32:
-		return "int32"
-	case Int64:
-		return "int64"
-	case Uint:
-		return "uint"
-	case Uint8:
-		return "uint8"
-	case Uint16:
-		return "uint16"
-	case Uint32:
-		return "uint32"
-	case Uint64:
-		return "uint64"
-	case Uintptr:
-		return "uintptr"
-	case Float32:
-		return "float32"
-	case Float64:
-		return "float64"
-	case Complex64:
-		return "complex64"
-	case Complex128:
-		return "complex128"
-	case String:
-		return "string"
-	case UnsafePointer:
-		return "unsafe.Pointer"
-	case Chan:
-		return "chan"
-	case Interface:
-		return "interface"
-	case Pointer:
-		return "ptr"
-	case Slice:
-		return "slice"
-	case Array:
-		return "array"
-	case Func:
-		return "func"
-	case Map:
-		return "map"
-	case Struct:
-		return "struct"
-	default:
-		return "kind" + itoa.Itoa(int(int8(k)))
-	}
-}
-
-// Copied from reflect/type.go
-// https://go.dev/src/reflect/type.go?#L348
-
-// ChanDir represents a channel type's direction.
-type ChanDir int
+type ChanDir = reflectlite.ChanDir
 
 const (
-	RecvDir ChanDir             = 1 << iota // <-chan
-	SendDir                                 // chan<-
-	BothDir = RecvDir | SendDir             // chan
+	RecvDir = reflectlite.RecvDir
+	SendDir = reflectlite.SendDir
+	BothDir = reflectlite.BothDir
 )
 
 // Method represents a single method.
@@ -412,6 +343,7 @@ type Type interface {
 }
 
 // Constants for the 'meta' byte.
+// These constants are also defined in the internal/reflectlite package.
 const (
 	kindMask       = 31  // mask to apply to the meta byte to get the Kind value
 	flagNamed      = 32  // flag that is set if this is a named type
@@ -549,91 +481,25 @@ func pointerTo(t *rawType) *rawType {
 	}
 }
 
+//go:linkname typeString internal/reflectlite.typeString
+func typeString(t *rawType) string
+
 func (t *rawType) String() string {
-	if t.isNamed() {
-		s := t.name()
-		if s[0] == '.' {
-			return s[1:]
-		}
-		return s
-	}
-
-	switch t.Kind() {
-	case Chan:
-		elem := t.elem().String()
-		switch t.ChanDir() {
-		case SendDir:
-			return "chan<- " + elem
-		case RecvDir:
-			return "<-chan " + elem
-		case BothDir:
-			if elem[0] == '<' {
-				// typ is recv chan, need parentheses as "<-" associates with leftmost
-				// chan possible, see:
-				// * https://golang.org/ref/spec#Channel_types
-				// * https://github.com/golang/go/issues/39897
-				return "chan (" + elem + ")"
-			}
-			return "chan " + elem
-		}
-
-	case Pointer:
-		return "*" + t.elem().String()
-	case Slice:
-		return "[]" + t.elem().String()
-	case Array:
-		return "[" + itoa.Itoa(t.Len()) + "]" + t.elem().String()
-	case Map:
-		return "map[" + t.key().String() + "]" + t.elem().String()
-	case Struct:
-		numField := t.NumField()
-		if numField == 0 {
-			return "struct {}"
-		}
-		s := "struct {"
-		for i := 0; i < numField; i++ {
-			f := t.rawField(i)
-			s += " " + f.Name + " " + f.Type.String()
-			if f.Tag != "" {
-				s += " " + quote(string(f.Tag))
-			}
-			// every field except the last needs a semicolon
-			if i < numField-1 {
-				s += ";"
-			}
-		}
-		s += " }"
-		return s
-	case Interface:
-		// TODO(dgryski): Needs actual method set info
-		return "interface {}"
-	default:
-		return t.Kind().String()
-	}
-
-	return t.Kind().String()
+	return typeString(t)
 }
 
+//go:linkname typeKind internal/reflectlite.typeKind
+func typeKind(t *rawType) Kind
+
 func (t *rawType) Kind() Kind {
-	if t == nil {
-		return Invalid
-	}
-
-	if tag := t.ptrtag(); tag != 0 {
-		return Pointer
-	}
-
-	return Kind(t.meta & kindMask)
+	return typeKind(t)
 }
 
 var (
-	errTypeElem         = &TypeError{"Elem"}
-	errTypeKey          = &TypeError{"Key"}
 	errTypeField        = &TypeError{"Field"}
 	errTypeBits         = &TypeError{"Bits"}
 	errTypeLen          = &TypeError{"Len"}
 	errTypeNumField     = &TypeError{"NumField"}
-	errTypeChanDir      = &TypeError{"ChanDir"}
 	errTypeFieldByName  = &TypeError{"FieldByName"}
 	errTypeFieldByIndex = &TypeError{"FieldByIndex"}
 )
@@ -644,28 +510,18 @@ func (t *rawType) Elem() Type {
 	return t.elem()
 }
 
-func (t *rawType) elem() *rawType {
-	if tag := t.ptrtag(); tag != 0 {
-		return (*rawType)(unsafe.Add(unsafe.Pointer(t), -1))
-	}
+//go:linkname typeElem internal/reflectlite.typeElem
+func typeElem(t *rawType) *rawType
 
-	underlying := t.underlying()
-	switch underlying.Kind() {
-	case Pointer:
-		return (*ptrType)(unsafe.Pointer(underlying)).elem
-	case Chan, Slice, Array, Map:
-		return (*elemType)(unsafe.Pointer(underlying)).elem
-	default:
-		panic(errTypeElem)
-	}
+func (t *rawType) elem() *rawType {
+	return typeElem(t)
 }
 
+//go:linkname typeKey internal/reflectlite.typeKey
+func typeKey(t *rawType) *rawType
+
 func (t *rawType) key() *rawType {
-	underlying := t.underlying()
-	if underlying.Kind() != Map {
-		panic(errTypeKey)
-	}
-	return (*mapType)(unsafe.Pointer(underlying)).key
+	return typeKey(t)
 }
 
 // Field returns the type of the i'th field of this struct type. It panics if t
@@ -683,68 +539,18 @@ func (t *rawType) Field(i int) StructField {
 	}
 }
 
-func rawStructFieldFromPointer(descriptor *structType, fieldType *rawType, data unsafe.Pointer, flagsByte uint8, name string, offset uint32) rawStructField {
-	// Read the field tag, if there is one.
-	var tag string
-	if flagsByte&structFieldFlagHasTag != 0 {
-		data = unsafe.Add(data, 1) // C: data+1
-		tagLen := uintptr(*(*byte)(data))
-		data = unsafe.Add(data, 1) // C: data+1
-		tag = *(*string)(unsafe.Pointer(&stringHeader{
-			data: data,
-			len:  tagLen,
-		}))
-	}
+//go:linkname rawStructFieldFromPointer internal/reflectlite.rawStructFieldFromPointer
+func rawStructFieldFromPointer(descriptor *structType, fieldType *rawType, data unsafe.Pointer, flagsByte uint8, name string, offset uint32) rawStructField
 
-	// Set the PkgPath to some (arbitrary) value if the package path is not
-	// exported.
-	pkgPath := ""
-	if flagsByte&structFieldFlagIsExported == 0 {
-		// This field is unexported.
-		pkgPath = readStringZ(unsafe.Pointer(descriptor.pkgpath))
-	}
-
-	return rawStructField{
-		Name:      name,
-		PkgPath:   pkgPath,
-		Type:      fieldType,
-		Tag:       StructTag(tag),
-		Anonymous: flagsByte&structFieldFlagAnonymous != 0,
-		Offset:    uintptr(offset),
-	}
-}
+//go:linkname typeRawField internal/reflectlite.typeRawField
+func typeRawField(t *rawType, n int) rawStructField
 
 // rawField returns nearly the same value as Field but without converting the
 // Type member to an interface.
 //
 // For internal use only.
 func (t *rawType) rawField(n int) rawStructField {
-	if t.Kind() != Struct {
-		panic(errTypeField)
-	}
-	descriptor := (*structType)(unsafe.Pointer(t.underlying()))
-	if uint(n) >= uint(descriptor.numField) {
-		panic("reflect: field index out of range")
-	}
-
-	// Iterate over all the fields to calculate the offset.
-	// This offset could have been stored directly in the array (to make the
-	// lookup faster), but by calculating it on-the-fly a bit of storage can be
-	// saved.
-	field := (*structField)(unsafe.Add(unsafe.Pointer(&descriptor.fields[0]), uintptr(n)*unsafe.Sizeof(structField{})))
-	data := field.data
-
-	// Read some flags of this field, like whether the field is an embedded
-	// field. See structFieldFlagAnonymous and similar flags.
-	flagsByte := *(*byte)(data)
-	data = unsafe.Add(data, 1)
-	offset, lenOffs := uvarint32(unsafe.Slice((*byte)(data), maxVarintLen32))
-	data = unsafe.Add(data, lenOffs)
-
-	name := readStringZ(data)
-	data = unsafe.Add(data, len(name))
-
-	return rawStructFieldFromPointer(descriptor, field.fieldType, data, flagsByte, name, offset)
+	return typeRawField(t, n)
 }
 
 // rawFieldByNameFunc returns nearly the same value as FieldByNameFunc but without converting the
@@ -871,49 +677,13 @@ func (t *rawType) NumField() int {
 	return int((*structType)(unsafe.Pointer(t.underlying())).numField)
 }
 
+//go:linkname typeSize internal/reflectlite.typeSize
+func typeSize(t *rawType) uintptr
+
 // Size returns the size in bytes of a given type. It is similar to
 // unsafe.Sizeof.
 func (t *rawType) Size() uintptr {
-	switch t.Kind() {
-	case Bool, Int8, Uint8:
-		return 1
-	case Int16, Uint16:
-		return 2
-	case Int32, Uint32:
-		return 4
-	case Int64, Uint64:
-		return 8
-	case Int, Uint:
-		return unsafe.Sizeof(int(0))
-	case Uintptr:
-		return unsafe.Sizeof(uintptr(0))
-	case Float32:
-		return 4
-	case Float64:
-		return 8
-	case Complex64:
-		return 8
-	case Complex128:
-		return 16
-	case String:
-		return unsafe.Sizeof("")
-	case UnsafePointer, Chan, Map, Pointer:
-		return unsafe.Sizeof(uintptr(0))
-	case Slice:
-		return unsafe.Sizeof([]int{})
-	case Interface:
-		return unsafe.Sizeof(interface{}(nil))
-	case Func:
-		var f func()
-		return unsafe.Sizeof(f)
-	case Array:
-		return t.elem().Size() * uintptr(t.Len())
-	case Struct:
-		u := t.underlying()
-		return uintptr((*structType)(unsafe.Pointer(u)).size)
-	default:
-		panic("unimplemented: size of type")
-	}
+	return typeSize(t)
 }
 
 // Align returns the alignment of this type. It is similar to calling
@@ -994,25 +764,13 @@ func (t *rawType) FieldAlign() int {
 	return t.Align()
 }
 
+//go:linkname typeAssignableTo internal/reflectlite.typeAssignableTo
+func typeAssignableTo(t, u *rawType) bool
+
 // AssignableTo returns whether a value of type t can be assigned to a variable
 // of type u.
 func (t *rawType) AssignableTo(u Type) bool {
-	if t == u.(*rawType) {
-		return true
-	}
-
-	if t.underlying() == u.(*rawType).underlying() && (!t.isNamed() || !u.(*rawType).isNamed()) {
-		return true
-	}
-
-	if u.Kind() == Interface && u.NumMethod() == 0 {
-		return true
-	}
-
-	if u.Kind() == Interface {
-		panic("reflect: unimplemented: AssignableTo with interface")
-	}
-	return false
+	return typeAssignableTo(t, u.(*rawType))
 }
 
 func (t *rawType) Implements(u Type) bool {
@@ -1032,15 +790,11 @@ func (t *rawType) isBinary() bool {
 	return (t.meta & flagIsBinary) == flagIsBinary
 }
 
+//go:linkname typeChanDir internal/reflectlite.typeChanDir
+func typeChanDir(t *rawType) ChanDir
+
 func (t *rawType) ChanDir() ChanDir {
-	if t.Kind() != Chan {
-		panic(errTypeChanDir)
-	}
-
-	dir := int((*elemType)(unsafe.Pointer(t)).numMethod)
-
-	// nummethod is overloaded for channel to store channel direction
-	return ChanDir(dir)
+	return typeChanDir(t)
 }
 
 func (t *rawType) ConvertibleTo(u Type) bool {
@@ -1059,24 +813,11 @@ func (t *rawType) NumOut() int {
 	panic("unimplemented: (reflect.Type).NumOut()")
 }
 
+//go:linkname typeNumMethod internal/reflectlite.typeNumMethod
+func typeNumMethod(t *rawType) int
+
 func (t *rawType) NumMethod() int {
-
-	if t.isNamed() {
-		return int((*namedType)(unsafe.Pointer(t)).numMethod)
-	}
-
-	switch t.Kind() {
-	case Pointer:
-		return int((*ptrType)(unsafe.Pointer(t)).numMethod)
-	case Struct:
-		return int((*structType)(unsafe.Pointer(t)).numMethod)
-	case Interface:
-		//FIXME: Use len(methods)
-		return (*interfaceType)(unsafe.Pointer(t)).ptrTo.NumMethod()
-	}
-
-	// Other types have no methods attached.  Note we don't panic here.
-	return 0
+	return typeNumMethod(t)
 }
 
 // Read and return a null terminated string starting from data.
@@ -1304,69 +1045,7 @@ type rawStructField struct {
 	Anonymous bool
 }
 
-// A StructTag is the tag string in a struct field.
-type StructTag string
-
-// TODO: it would be feasible to do the key/value splitting at compile time,
-// avoiding the code size cost of doing it at runtime
-
-// Get returns the value associated with key in the tag string.
-func (tag StructTag) Get(key string) string {
-	v, _ := tag.Lookup(key)
-	return v
-}
-
-// Lookup returns the value associated with key in the tag string.
-func (tag StructTag) Lookup(key string) (value string, ok bool) {
-	for tag != "" {
-		// Skip leading space.
-		i := 0
-		for i < len(tag) && tag[i] == ' ' {
-			i++
-		}
-		tag = tag[i:]
-		if tag == "" {
-			break
-		}
-
-		// Scan to colon. A space, a quote or a control character is a syntax error.
-		// Strictly speaking, control chars include the range [0x7f, 0x9f], not just
-		// [0x00, 0x1f], but in practice, we ignore the multi-byte control characters
-		// as it is simpler to inspect the tag's bytes than the tag's runes.
-		i = 0
-		for i < len(tag) && tag[i] > ' ' && tag[i] != ':' && tag[i] != '"' && tag[i] != 0x7f {
-			i++
-		}
-		if i == 0 || i+1 >= len(tag) || tag[i] != ':' || tag[i+1] != '"' {
-			break
-		}
-		name := string(tag[:i])
-		tag = tag[i+1:]
-
-		// Scan quoted string to find value.
-		i = 1
-		for i < len(tag) && tag[i] != '"' {
-			if tag[i] == '\\' {
-				i++
-			}
-			i++
-		}
-		if i >= len(tag) {
-			break
-		}
-		qvalue := string(tag[:i+1])
-		tag = tag[i+1:]
-
-		if key == name {
-			value, err := unquote(qvalue)
-			if err != nil {
-				break
-			}
-			return value, true
-		}
-	}
-	return "", false
-}
+type StructTag = reflectlite.StructTag
 
 // TypeError is the error that is used in a panic when invoking a method on a
 // type that is not applicable to that type.

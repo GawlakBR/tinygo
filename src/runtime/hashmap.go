@@ -539,7 +539,7 @@ func hashmapStringDelete(m *hashmap, key string) {
 // a field is exported and thus allows circumventing the type system.
 // The hash function needs it as it also needs to hash unexported struct fields.
 //
-//go:linkname valueInterfaceUnsafe reflect.valueInterfaceUnsafe
+//go:linkname valueInterfaceUnsafe internal/reflectlite.valueInterfaceUnsafe
 func valueInterfaceUnsafe(v reflect.Value) interface{}
 
 func hashmapFloat32Hash(ptr unsafe.Pointer, seed uintptr) uint32 {

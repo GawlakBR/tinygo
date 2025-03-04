@@ -1,6 +1,7 @@
 package reflect
 
 import (
+	"internal/reflectlite"
 	"math"
 	"unsafe"
 )
@@ -11,6 +12,8 @@ type valueFlags uint8
 // contained in an interface{} directly, like whether this value was exported at
 // all (it is possible to read unexported fields using reflection, but it is not
 // possible to modify them).
+//
+// These flags are shared with the internal/reflectlite package.
 const (
 	valueFlagIndirect valueFlags = 1 << iota
 	valueFlagExported
@@ -19,13 +22,6 @@ const (
 
 	valueFlagRO = valueFlagEmbedRO | valueFlagStickyRO
 )
-
-func (v valueFlags) ro() valueFlags {
-	if v&valueFlagRO != 0 {
-		return valueFlagStickyRO
-	}
-	return 0
-}
 
 type Value struct {
 	typecode *rawType
@@ -86,32 +82,16 @@ func (v Value) Interface() interface{} {
 	return valueInterfaceUnsafe(v)
 }
 
-// valueInterfaceUnsafe is used by the runtime to hash map keys. It should not
-// be subject to the isExported check.
-func valueInterfaceUnsafe(v Value) interface{} {
-	if v.typecode.Kind() == Interface {
-		// The value itself is an interface. This can happen when getting the
-		// value of a struct field of interface type, like this:
-		//     type T struct {
-		//         X interface{}
-		//     }
-		return *(*interface{})(v.value)
-	}
-	if v.isIndirect() && v.typecode.Size() <= unsafe.Sizeof(uintptr(0)) {
-		// Value was indirect but must be put back directly in the interface
-		// value.
-		var value uintptr
-		for j := v.typecode.Size(); j != 0; j-- {
-			value = (value << 8) | uintptr(*(*uint8)(unsafe.Add(v.value, j-1)))
-		}
-		v.value = unsafe.Pointer(value)
-	}
-	return composeInterface(unsafe.Pointer(v.typecode), v.value)
-}
+//go:linkname valueInterfaceUnsafe internal/reflectlite.valueInterfaceUnsafe
+func valueInterfaceUnsafe(v Value) interface{}
 
 func (v Value) Type() Type {
 	return v.typecode
 }
+
+// Implemented in the reflectlite package, to cast Value to reflectlite.Value as
+// a no-op.
+func lite(v Value) reflectlite.Value
 
 // IsZero reports whether v is the zero value for its type.
 // It panics if the argument is invalid.
@@ -167,27 +147,7 @@ func (v Value) Kind() Kind {
 // IsNil returns whether the value is the nil value. It panics if the value Kind
 // is not a channel, map, pointer, function, slice, or interface.
 func (v Value) IsNil() bool {
-	switch v.Kind() {
-	case Chan, Map, Ptr, UnsafePointer:
-		return v.pointer() == nil
-	case Func:
-		if v.value == nil {
-			return true
-		}
-		fn := (*funcHeader)(v.value)
-		return fn.Code == nil
-	case Slice:
-		if v.value == nil {
-			return true
-		}
-		slice := (*sliceHeader)(v.value)
-		return slice.data == nil
-	case Interface:
-		val := *(*interface{})(v.value)
-		return val == nil
-	default:
-		panic(&ValueError{Method: "IsNil", Kind: v.Kind()})
-	}
+	return lite(v).IsNil()
 }
 
 // Pointer returns the underlying pointer of the given value for the following
@@ -199,21 +159,7 @@ func (v Value) Pointer() uintptr {
 // UnsafePointer returns the underlying pointer of the given value for the
 // following types: chan, map, pointer, unsafe.Pointer, slice, func.
 func (v Value) UnsafePointer() unsafe.Pointer {
-	switch v.Kind() {
-	case Chan, Map, Ptr, UnsafePointer:
-		return v.pointer()
-	case Slice:
-		slice := (*sliceHeader)(v.value)
-		return slice.data
-	case Func:
-		fn := (*funcHeader)(v.value)
-		if fn.Context != nil {
-			return fn.Context
-		}
-		return fn.Code
-	default:
-		panic(&ValueError{Method: "UnsafePointer", Kind: v.Kind()})
-	}
+	return lite(v).UnsafePointer()
 }
 
 // pointer returns the underlying pointer represented by v.
@@ -372,19 +318,10 @@ func (v Value) CanSet() bool {
 }
 
 func (v Value) Bool() bool {
-	switch v.Kind() {
-	case Bool:
-		if v.isIndirect() {
-			return *((*bool)(v.value))
-		} else {
-			return uintptr(v.value) != 0
-		}
-	default:
-		panic(&ValueError{Method: "Bool", Kind: v.Kind()})
-	}
+	return lite(v).Bool()
 }
 
-// CanInt reports whether Uint can be used without panicking.
+// CanInt reports whether Int can be used without panicking.
 func (v Value) CanInt() bool {
 	switch v.Kind() {
 	case Int, Int8, Int16, Int32, Int64:
@@ -395,40 +332,7 @@ func (v Value) CanInt() bool {
 }
 
 func (v Value) Int() int64 {
-	switch v.Kind() {
-	case Int:
-		if v.isIndirect() || unsafe.Sizeof(int(0)) > unsafe.Sizeof(uintptr(0)) {
-			return int64(*(*int)(v.value))
-		} else {
-			return int64(int(uintptr(v.value)))
-		}
-	case Int8:
-		if v.isIndirect() {
-			return int64(*(*int8)(v.value))
-		} else {
-			return int64(int8(uintptr(v.value)))
-		}
-	case Int16:
-		if v.isIndirect() {
-			return int64(*(*int16)(v.value))
-		} else {
-			return int64(int16(uintptr(v.value)))
-		}
-	case Int32:
-		if v.isIndirect() || unsafe.Sizeof(int32(0)) > unsafe.Sizeof(uintptr(0)) {
-			return int64(*(*int32)(v.value))
-		} else {
-			return int64(int32(uintptr(v.value)))
-		}
-	case Int64:
-		if v.isIndirect() || unsafe.Sizeof(int64(0)) > unsafe.Sizeof(uintptr(0)) {
-			return int64(*(*int64)(v.value))
-		} else {
-			return int64(int64(uintptr(v.value)))
-		}
-	default:
-		panic(&ValueError{Method: "Int", Kind: v.Kind()})
-	}
+	return lite(v).Int()
 }
 
 // CanUint reports whether Uint can be used without panicking.
@@ -442,46 +346,7 @@ func (v Value) CanUint() bool {
 }
 
 func (v Value) Uint() uint64 {
-	switch v.Kind() {
-	case Uintptr:
-		if v.isIndirect() {
-			return uint64(*(*uintptr)(v.value))
-		} else {
-			return uint64(uintptr(v.value))
-		}
-	case Uint8:
-		if v.isIndirect() {
-			return uint64(*(*uint8)(v.value))
-		} else {
-			return uint64(uintptr(v.value))
-		}
-	case Uint16:
-		if v.isIndirect() {
-			return uint64(*(*uint16)(v.value))
-		} else {
-			return uint64(uintptr(v.value))
-		}
-	case Uint:
-		if v.isIndirect() || unsafe.Sizeof(uint(0)) > unsafe.Sizeof(uintptr(0)) {
-			return uint64(*(*uint)(v.value))
-		} else {
-			return uint64(uintptr(v.value))
-		}
-	case Uint32:
-		if v.isIndirect() || unsafe.Sizeof(uint32(0)) > unsafe.Sizeof(uintptr(0)) {
-			return uint64(*(*uint32)(v.value))
-		} else {
-			return uint64(uintptr(v.value))
-		}
-	case Uint64:
-		if v.isIndirect() || unsafe.Sizeof(uint64(0)) > unsafe.Sizeof(uintptr(0)) {
-			return uint64(*(*uint64)(v.value))
-		} else {
-			return uint64(uintptr(v.value))
-		}
-	default:
-		panic(&ValueError{Method: "Uint", Kind: v.Kind()})
-	}
+	return lite(v).Uint()
 }
 
 // CanFloat reports whether Float can be used without panicking.
@@ -516,29 +381,7 @@ func (v Value) Float32() float32 {
 }
 
 func (v Value) Float() float64 {
-	switch v.Kind() {
-	case Float32:
-		if v.isIndirect() || unsafe.Sizeof(float32(0)) > unsafe.Sizeof(uintptr(0)) {
-			// The float is stored as an external value on systems with 16-bit
-			// pointers.
-			return float64(*(*float32)(v.value))
-		} else {
-			// The float is directly stored in the interface value on systems
-			// with 32-bit and 64-bit pointers.
-			return float64(*(*float32)(unsafe.Pointer(&v.value)))
-		}
-	case Float64:
-		if v.isIndirect() || unsafe.Sizeof(float64(0)) > unsafe.Sizeof(uintptr(0)) {
-			// For systems with 16-bit and 32-bit pointers.
-			return *(*float64)(v.value)
-		} else {
-			// The float is directly stored in the interface value on systems
-			// with 64-bit pointers.
-			return *(*float64)(unsafe.Pointer(&v.value))
-		}
-	default:
-		panic(&ValueError{Method: "Float", Kind: v.Kind()})
-	}
+	return lite(v).Float()
 }
 
 // CanComplex reports whether Complex can be used without panicking.
@@ -552,37 +395,11 @@ func (v Value) CanComplex() bool {
 }
 
 func (v Value) Complex() complex128 {
-	switch v.Kind() {
-	case Complex64:
-		if v.isIndirect() || unsafe.Sizeof(complex64(0)) > unsafe.Sizeof(uintptr(0)) {
-			// The complex number is stored as an external value on systems with
-			// 16-bit and 32-bit pointers.
-			return complex128(*(*complex64)(v.value))
-		} else {
-			// The complex number is directly stored in the interface value on
-			// systems with 64-bit pointers.
-			return complex128(*(*complex64)(unsafe.Pointer(&v.value)))
-		}
-	case Complex128:
-		// This is a 128-bit value, which is always stored as an external value.
-		// It may be stored in the pointer directly on very uncommon
-		// architectures with 128-bit pointers, however.
-		return *(*complex128)(v.value)
-	default:
-		panic(&ValueError{Method: "Complex", Kind: v.Kind()})
-	}
+	return lite(v).Complex()
 }
 
 func (v Value) String() string {
-	switch v.Kind() {
-	case String:
-		// A string value is always bigger than a pointer as it is made of a
-		// pointer and a length.
-		return *(*string)(v.value)
-	default:
-		// Special case because of the special treatment of .String() in Go.
-		return "<" + v.typecode.String() + " Value>"
-	}
+	return lite(v).String()
 }
 
 func (v Value) Bytes() []byte {
@@ -733,20 +550,7 @@ func chanlen(p unsafe.Pointer) int
 // Len returns the length of this value for slices, strings, arrays, channels,
 // and maps. For other types, it panics.
 func (v Value) Len() int {
-	switch v.typecode.Kind() {
-	case Array:
-		return v.typecode.Len()
-	case Chan:
-		return chanlen(v.pointer())
-	case Map:
-		return maplen(v.pointer())
-	case Slice:
-		return int((*sliceHeader)(v.value).len)
-	case String:
-		return int((*stringHeader)(v.value).len)
-	default:
-		panic(&ValueError{Method: "Len", Kind: v.Kind()})
-	}
+	return lite(v).Len()
 }
 
 //go:linkname chancap runtime.chanCap
@@ -792,196 +596,26 @@ func (v Value) NumField() int {
 	return v.typecode.NumField()
 }
 
+//go:linkname valueElem internal/reflectlite.valueElem
+func valueElem(v Value) Value
+
 func (v Value) Elem() Value {
-	switch v.Kind() {
-	case Ptr:
-		ptr := v.pointer()
-		if ptr == nil {
-			return Value{}
-		}
-		// Don't copy RO flags
-		flags := (v.flags & (valueFlagIndirect | valueFlagExported)) | valueFlagIndirect
-		return Value{
-			typecode: v.typecode.elem(),
-			value:    ptr,
-			flags:    flags,
-		}
-	case Interface:
-		typecode, value := decomposeInterface(*(*interface{})(v.value))
-		return Value{
-			typecode: (*rawType)(typecode),
-			value:    value,
-			flags:    v.flags &^ valueFlagIndirect,
-		}
-	default:
-		panic(&ValueError{Method: "Elem", Kind: v.Kind()})
-	}
+	return valueElem(v)
 }
+
+//go:linkname valueField internal/reflectlite.valueField
+func valueField(v Value, i int) Value
 
 // Field returns the value of the i'th field of this struct.
 func (v Value) Field(i int) Value {
-	if v.Kind() != Struct {
-		panic(&ValueError{Method: "Field", Kind: v.Kind()})
-	}
-	structField := v.typecode.rawField(i)
-
-	// Copy flags but clear EmbedRO; we're not an embedded field anymore
-	flags := v.flags & ^valueFlagEmbedRO
-	if structField.PkgPath != "" {
-		// No PkgPath => not exported.
-		// Clear exported flag even if the parent was exported.
-		flags &^= valueFlagExported
-
-		// Update the RO flag
-		if structField.Anonymous {
-			// Embedded field
-			flags |= valueFlagEmbedRO
-		} else {
-			flags |= valueFlagStickyRO
-		}
-	} else {
-		// Parent field may not have been exported but we are
-		flags |= valueFlagExported
-	}
-
-	size := v.typecode.Size()
-	fieldType := structField.Type
-	fieldSize := fieldType.Size()
-	if v.isIndirect() || fieldSize > unsafe.Sizeof(uintptr(0)) {
-		// v.value was already a pointer to the value and it should stay that
-		// way.
-		return Value{
-			flags:    flags,
-			typecode: fieldType,
-			value:    unsafe.Add(v.value, structField.Offset),
-		}
-	}
-
-	// The fieldSize is smaller than uintptr, which means that the value will
-	// have to be stored directly in the interface value.
-
-	if fieldSize == 0 {
-		// The struct field is zero sized.
-		// This is a rare situation, but because it's undefined behavior
-		// to shift the size of the value (zeroing the value), handle this
-		// situation explicitly.
-		return Value{
-			flags:    flags,
-			typecode: fieldType,
-			value:    unsafe.Pointer(nil),
-		}
-	}
-
-	if size > unsafe.Sizeof(uintptr(0)) {
-		// The value was not stored in the interface before but will be
-		// afterwards, so load the value (from the correct offset) and return
-		// it.
-		ptr := unsafe.Add(v.value, structField.Offset)
-		value := unsafe.Pointer(loadValue(ptr, fieldSize))
-		return Value{
-			flags:    flags &^ valueFlagIndirect,
-			typecode: fieldType,
-			value:    value,
-		}
-	}
-
-	// The value was already stored directly in the interface and it still
-	// is. Cut out the part of the value that we need.
-	value := maskAndShift(uintptr(v.value), structField.Offset, fieldSize)
-	return Value{
-		flags:    flags,
-		typecode: fieldType,
-		value:    unsafe.Pointer(value),
-	}
+	return valueField(v, i)
 }
 
-var uint8Type = TypeOf(uint8(0)).(*rawType)
+//go:linkname valueIndex internal/reflectlite.valueIndex
+func valueIndex(v Value, i int) Value
 
 func (v Value) Index(i int) Value {
-	switch v.Kind() {
-	case Slice:
-		// Extract an element from the slice.
-		slice := *(*sliceHeader)(v.value)
-		if uint(i) >= uint(slice.len) {
-			panic("reflect: slice index out of range")
-		}
-		flags := (v.flags & (valueFlagExported | valueFlagIndirect)) | valueFlagIndirect | v.flags.ro()
-		elem := Value{
-			typecode: v.typecode.elem(),
-			flags:    flags,
-		}
-		elem.value = unsafe.Add(slice.data, elem.typecode.Size()*uintptr(i)) // pointer to new value
-		return elem
-	case String:
-		// Extract a character from a string.
-		// A string is never stored directly in the interface, but always as a
-		// pointer to the string value.
-		// Keeping valueFlagExported if set, but don't set valueFlagIndirect
-		// otherwise CanSet will return true for string elements (which is bad,
-		// strings are read-only).
-		s := *(*stringHeader)(v.value)
-		if uint(i) >= uint(s.len) {
-			panic("reflect: string index out of range")
-		}
-		return Value{
-			typecode: uint8Type,
-			value:    unsafe.Pointer(uintptr(*(*uint8)(unsafe.Add(s.data, i)))),
-			flags:    v.flags & valueFlagExported,
-		}
-	case Array:
-		// Extract an element from the array.
-		elemType := v.typecode.elem()
-		elemSize := elemType.Size()
-		size := v.typecode.Size()
-		if size == 0 {
-			// The element size is 0 and/or the length of the array is 0.
-			return Value{
-				typecode: v.typecode.elem(),
-				flags:    v.flags,
-			}
-		}
-		if elemSize > unsafe.Sizeof(uintptr(0)) {
-			// The resulting value doesn't fit in a pointer so must be
-			// indirect. Also, because size != 0 this implies that the array
-			// length must be != 0, and thus that the total size is at least
-			// elemSize.
-			addr := unsafe.Add(v.value, elemSize*uintptr(i)) // pointer to new value
-			return Value{
-				typecode: v.typecode.elem(),
-				flags:    v.flags,
-				value:    addr,
-			}
-		}
-
-		if size > unsafe.Sizeof(uintptr(0)) || v.isIndirect() {
-			// The element fits in a pointer, but the array is not stored in the pointer directly.
-			// Load the value from the pointer.
-			addr := unsafe.Add(v.value, elemSize*uintptr(i)) // pointer to new value
-			value := addr
-			if !v.isIndirect() {
-				// Use a pointer to the value (don't load the value) if the
-				// 'indirect' flag is set.
-				value = unsafe.Pointer(loadValue(addr, elemSize))
-			}
-			return Value{
-				typecode: v.typecode.elem(),
-				flags:    v.flags,
-				value:    value,
-			}
-		}
-
-		// The value fits in a pointer, so extract it with some shifting and
-		// masking.
-		offset := elemSize * uintptr(i)
-		value := maskAndShift(uintptr(v.value), offset, elemSize)
-		return Value{
-			typecode: v.typecode.elem(),
-			flags:    v.flags,
-			value:    unsafe.Pointer(value),
-		}
-	default:
-		panic(&ValueError{Method: "Index", Kind: v.Kind()})
-	}
+	return valueIndex(v, i)
 }
 
 func (v Value) NumMethod() int {
@@ -1159,31 +793,7 @@ func (it *MapIter) Next() bool {
 }
 
 func (v Value) Set(x Value) {
-	v.checkAddressable()
-	v.checkRO()
-	if !x.typecode.AssignableTo(v.typecode) {
-		panic("reflect.Value.Set: value of type " + x.typecode.String() + " cannot be assigned to type " + v.typecode.String())
-	}
-
-	if v.typecode.Kind() == Interface && x.typecode.Kind() != Interface {
-		// move the value of x back into the interface, if possible
-		if x.isIndirect() && x.typecode.Size() <= unsafe.Sizeof(uintptr(0)) {
-			x.value = unsafe.Pointer(loadValue(x.value, x.typecode.Size()))
-		}
-
-		intf := composeInterface(unsafe.Pointer(x.typecode), x.value)
-		x = Value{
-			typecode: v.typecode,
-			value:    unsafe.Pointer(&intf),
-		}
-	}
-
-	size := v.typecode.Size()
-	if size <= unsafe.Sizeof(uintptr(0)) && !x.isIndirect() {
-		storeValue(v.value, size, uintptr(x.value))
-	} else {
-		memcpy(v.value, x.value, size)
-	}
+	lite(v).Set(lite(x))
 }
 
 func (v Value) SetZero() {
@@ -1722,17 +1332,7 @@ var (
 	_ [unsafe.Sizeof("")]byte       = [unsafe.Sizeof(stringHeader{})]byte{}
 )
 
-type ValueError struct {
-	Method string
-	Kind   Kind
-}
-
-func (e *ValueError) Error() string {
-	if e.Kind == 0 {
-		return "reflect: call of " + e.Method + " on zero Value"
-	}
-	return "reflect: call of " + e.Method + " on " + e.Kind.String() + " Value"
-}
+type ValueError = reflectlite.ValueError
 
 //go:linkname memcpy runtime.memcpy
 func memcpy(dst, src unsafe.Pointer, size uintptr)
