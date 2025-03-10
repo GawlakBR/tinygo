@@ -8,6 +8,27 @@ import (
 	"unsafe"
 )
 
+const (
+	SPI_MODE_CPHA0_CPOL0 SPIMode = iota
+	SPI_MODE_CPHA1_CPOL0
+	SPI_MODE_CPHA1_CPOL1
+	SPI_MODE_CPHA0_CPOL1
+
+	SPI_MODE_CPHA_FALLING_EDGE_CPOL_ACTIVE_LOW  = SPI_MODE_CPHA0_CPOL0
+	SPI_MODE_CPHA_RISING_EDGE_CPOL_ACTIVE_LOW   = SPI_MODE_CPHA1_CPOL0
+	SPI_MODE_CPHA_RISING_EDGE_CPOL_ACTIVE_HIGH  = SPI_MODE_CPHA1_CPOL1
+	SPI_MODE_CPHA_FALLING_EDGE_CPOL_ACTIVE_HIGH = SPI_MODE_CPHA0_CPOL1
+)
+
+// There are 3 SPI interfaces on the NRF528xx.
+var (
+	SPI0 = SPI{Bus: nrf.SPIM0}
+	SPI1 = SPI{Bus: nrf.SPIM1}
+	SPI2 = SPI{Bus: nrf.SPIM2}
+)
+
+type SPIMode uint8
+
 func CPUFrequency() uint32 {
 	return 64000000
 }
@@ -194,15 +215,7 @@ func (a *ADC) Get() uint16 {
 // SPI on the NRF.
 type SPI struct {
 	Bus *nrf.SPIM_Type
-	buf *[1]byte // 1-byte buffer for the Transfer method
 }
-
-// There are 3 SPI interfaces on the NRF528xx.
-var (
-	SPI0 = SPI{Bus: nrf.SPIM0, buf: new([1]byte)}
-	SPI1 = SPI{Bus: nrf.SPIM1, buf: new([1]byte)}
-	SPI2 = SPI{Bus: nrf.SPIM2, buf: new([1]byte)}
-)
 
 // SPIConfig is used to store config info for SPI.
 type SPIConfig struct {
@@ -215,18 +228,15 @@ type SPIConfig struct {
 }
 
 // Configure is intended to set up the SPI interface.
-func (spi SPI) Configure(config SPIConfig) error {
+func (spi *SPI) Configure(config SPIConfig) error {
 	// Disable bus to configure it
 	spi.Bus.ENABLE.Set(nrf.SPIM_ENABLE_ENABLE_Disabled)
-
-	// Pick a default frequency.
-	if config.Frequency == 0 {
-		config.Frequency = 4000000 // 4MHz
-	}
 
 	// set frequency
 	var freq uint32
 	switch {
+	case config.Frequency == 0: // default MCU SPI speed
+		freq = nrf.SPIM_FREQUENCY_FREQUENCY_M4
 	case config.Frequency >= 8000000:
 		freq = nrf.SPIM_FREQUENCY_FREQUENCY_M8
 	case config.Frequency >= 4000000:
@@ -251,24 +261,24 @@ func (spi SPI) Configure(config SPIConfig) error {
 		conf = (nrf.SPIM_CONFIG_ORDER_LsbFirst << nrf.SPIM_CONFIG_ORDER_Pos)
 	}
 
-	// set mode
-	switch config.Mode {
-	case 0:
+	// set mode, see:
+	// - https://de.wikipedia.org/wiki/Serial_Peripheral_Interface#/media/Datei:SPI_timing_diagram2.svg
+	// - https://docs-be.nordicsemi.com/bundle/ps_nrf52840/attach/nRF52840_PS_v1.11.pdf?_LANG=enus page 716, table 43
+	switch SPIMode(config.Mode) {
+	case SPI_MODE_CPHA0_CPOL0:
 		conf &^= (nrf.SPIM_CONFIG_CPOL_ActiveHigh << nrf.SPIM_CONFIG_CPOL_Pos)
 		conf &^= (nrf.SPIM_CONFIG_CPHA_Leading << nrf.SPIM_CONFIG_CPHA_Pos)
-	case 1:
+	case SPI_MODE_CPHA1_CPOL0:
 		conf &^= (nrf.SPIM_CONFIG_CPOL_ActiveHigh << nrf.SPIM_CONFIG_CPOL_Pos)
 		conf |= (nrf.SPIM_CONFIG_CPHA_Trailing << nrf.SPIM_CONFIG_CPHA_Pos)
-	case 2:
+	case SPI_MODE_CPHA1_CPOL1:
 		conf |= (nrf.SPIM_CONFIG_CPOL_ActiveLow << nrf.SPIM_CONFIG_CPOL_Pos)
 		conf &^= (nrf.SPIM_CONFIG_CPHA_Leading << nrf.SPIM_CONFIG_CPHA_Pos)
-	case 3:
+	case SPI_MODE_CPHA0_CPOL1:
 		conf |= (nrf.SPIM_CONFIG_CPOL_ActiveLow << nrf.SPIM_CONFIG_CPOL_Pos)
 		conf |= (nrf.SPIM_CONFIG_CPHA_Trailing << nrf.SPIM_CONFIG_CPHA_Pos)
-	default: // to mode
-		conf &^= (nrf.SPIM_CONFIG_CPOL_ActiveHigh << nrf.SPIM_CONFIG_CPOL_Pos)
-		conf &^= (nrf.SPIM_CONFIG_CPHA_Leading << nrf.SPIM_CONFIG_CPHA_Pos)
 	}
+
 	spi.Bus.CONFIG.Set(conf)
 
 	// set pins
@@ -288,10 +298,9 @@ func (spi SPI) Configure(config SPIConfig) error {
 }
 
 // Transfer writes/reads a single byte using the SPI interface.
-func (spi SPI) Transfer(w byte) (byte, error) {
-	buf := spi.buf[:]
-	buf[0] = w
-	err := spi.Tx(buf[:], buf[:])
+func (spi *SPI) Transfer(w byte) (byte, error) {
+	buf := []byte{w}
+	err := spi.Tx(buf, buf)
 	return buf[0], err
 }
 
@@ -300,7 +309,7 @@ func (spi SPI) Transfer(w byte) (byte, error) {
 // as bytes read. Therefore, if the number of bytes don't match it will be
 // padded until they fit: if len(w) > len(r) the extra bytes received will be
 // dropped and if len(w) < len(r) extra 0 bytes will be sent.
-func (spi SPI) Tx(w, r []byte) error {
+func (spi *SPI) Tx(w, r []byte) error {
 	// Unfortunately the hardware (on the nrf52832) only supports up to 255
 	// bytes in the buffers, so if either w or r is longer than that the
 	// transfer needs to be broken up in pieces.
@@ -340,6 +349,16 @@ func (spi SPI) Tx(w, r []byte) error {
 	}
 
 	return nil
+}
+
+// Read implements [io.Reader]. And reads as many bytes as the given buffer is long
+func (spi *SPI) Read(r []byte) (int, error) {
+	return len(r), spi.Tx(nil, r)
+}
+
+// Write implements [io.Writer]. And writes as long as there are bytes in w.
+func (spi *SPI) Write(w []byte) (int, error) {
+	return len(w), spi.Tx(w, nil)
 }
 
 // PWM is one PWM peripheral, which consists of a counter and multiple output
