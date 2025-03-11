@@ -11,6 +11,7 @@ name: LLVM
 on:
   push:
     branches: [ build-llvm-image ]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
