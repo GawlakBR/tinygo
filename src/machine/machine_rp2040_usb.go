@@ -169,21 +169,19 @@ func initEndpoint(ep, config uint32) {
 }
 
 func handleUSBSetAddress(setup usb.Setup) bool {
+	rp.USBCTRL_REGS.SIE_STATUS.Set(rp.USBCTRL_REGS_SIE_STATUS_ACK_REC)
 	sendUSBPacket(0, []byte{}, 0)
-
 	// last, set the device address to that requested by host
 	// wait for transfer to complete
-	timeout := 3000
-	rp.USBCTRL_REGS.SIE_STATUS.Set(rp.USBCTRL_REGS_SIE_STATUS_ACK_REC)
+	start := rp.TIMER.TIMERAWL.Get()
 	for (rp.USBCTRL_REGS.SIE_STATUS.Get() & rp.USBCTRL_REGS_SIE_STATUS_ACK_REC) == 0 {
-		timeout--
-		if timeout == 0 {
-			return true
+		current := rp.TIMER.TIMERAWL.Get()
+		elapsed := current - start  //Avoiding overflow in unsigned integer subtraction.
+		if elapsed >= 570 {//exactly the same time as SAMD21.
+			return false
 		}
 	}
-
 	rp.USBCTRL_REGS.ADDR_ENDP.Set(uint32(setup.WValueL) & rp.USBCTRL_REGS_ADDR_ENDP_ADDRESS_Msk)
-
 	return true
 }
 
