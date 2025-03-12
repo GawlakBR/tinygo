@@ -174,10 +174,10 @@ func initEndpoint(ep, config uint32) {
 func handleUSBSetAddress(setup usb.Setup) bool {
 	// Using 570μs timeout which is exactly the same as SAMD21.
 
-	const ackTimeout=570
+	const ackTimeout = 570
 	rp.USB.SIE_STATUS.Set(rp.USB_SIE_STATUS_ACK_REC)
 	sendUSBPacket(0, []byte{}, 0)
-	
+
 	// Wait for transfer to complete with a timeout.
 	t := timer.timeElapsed()
 	for (rp.USB.SIE_STATUS.Get() & rp.USB_SIE_STATUS_ACK_REC) == 0 {
@@ -185,12 +185,11 @@ func handleUSBSetAddress(setup usb.Setup) bool {
 			return false
 		}
 	}
-	
+
 	// Set the device address to that requested by host.
 	rp.USB.ADDR_ENDP.Set(uint32(setup.WValueL) & rp.USB_ADDR_ENDP_ADDRESS_Msk)
 	return true
 }
-
 
 // SendUSBInPacket sends a packet for USB (interrupt in / bulk in).
 func SendUSBInPacket(ep uint32, data []byte) bool {
