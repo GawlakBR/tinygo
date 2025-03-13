@@ -3312,6 +3312,8 @@ func TestMethodPkgPath(t *testing.T) {
 	}
 }
 
+*/
+
 func TestVariadicType(t *testing.T) {
 	// Test example from Type documentation.
 	var f func(x int, y ...float64)
@@ -3334,6 +3336,8 @@ func TestVariadicType(t *testing.T) {
 	}
 	t.Error(s)
 }
+
+/*
 
 type inner struct {
 	x int

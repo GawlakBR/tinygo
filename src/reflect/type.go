@@ -493,6 +493,15 @@ type structField struct {
 	data      unsafe.Pointer // various bits of information, packed in a byte array
 }
 
+type funcType struct {
+	rawType
+	ptrTo    *rawType
+	inCount  uint16
+	outCount uint16
+	variadic bool
+	fields   [1]*rawType // the remaining fields are all of type funcField
+}
+
 // Equivalent to (go/types.Type).Underlying(): if this is a named type return
 // the underlying type, else just return the type itself.
 func (t *rawType) underlying() *rawType {
@@ -604,6 +613,36 @@ func (t *rawType) String() string {
 		}
 		s += " }"
 		return s
+	case Func:
+		isVariadic := t.IsVariadic()
+
+		f := "func("
+		for i := 0; i < t.NumIn(); i++ {
+			if i > 0 {
+				f += ", "
+			}
+
+			input := t.In(i).String()
+			if isVariadic && i == t.NumIn()-1 {
+				f += "..."
+				input = input[2:]
+			}
+			f += input
+		}
+
+		f += ") "
+
+		var rets string
+		for i := 0; i < t.NumOut(); i++ {
+			if i > 0 {
+				rets += ", "
+			}
+			rets += t.Out(i).String()
+		}
+		if t.NumOut() > 1 {
+			rets = "(" + rets + ")"
+		}
+		return f + rets
 	case Interface:
 		// TODO(dgryski): Needs actual method set info
 		return "interface {}"
@@ -1048,15 +1087,40 @@ func (t *rawType) ConvertibleTo(u Type) bool {
 }
 
 func (t *rawType) IsVariadic() bool {
-	panic("unimplemented: (reflect.Type).IsVariadic()")
+	if t.isNamed() {
+		named := (*namedType)(unsafe.Pointer(t))
+		t = named.elem
+	}
+
+	if t.Kind() != Func {
+		panic("reflect: IsVariadic of non-func type")
+	}
+
+	return (*funcType)(unsafe.Pointer(t)).variadic
 }
 
 func (t *rawType) NumIn() int {
-	panic("unimplemented: (reflect.Type).NumIn()")
+	if t.isNamed() {
+		named := (*namedType)(unsafe.Pointer(t))
+		return int((*funcType)(unsafe.Pointer(named.elem)).inCount)
+	}
+
+	if t.Kind() != Func {
+		panic("reflect: NumIn of non-func type")
+	}
+	return int((*funcType)(unsafe.Pointer(t)).inCount)
 }
 
 func (t *rawType) NumOut() int {
-	panic("unimplemented: (reflect.Type).NumOut()")
+	if t.isNamed() {
+		named := (*namedType)(unsafe.Pointer(t))
+		return int((*funcType)(unsafe.Pointer(named.elem)).outCount)
+	}
+
+	if t.Kind() != Func {
+		panic("reflect: NumOut of non-func type")
+	}
+	return int((*funcType)(unsafe.Pointer(t)).outCount)
 }
 
 func (t *rawType) NumMethod() int {
@@ -1123,12 +1187,55 @@ func (t *rawType) Key() Type {
 	return t.key()
 }
 
-func (t rawType) In(i int) Type {
-	panic("unimplemented: (reflect.Type).In()")
+// addChecked returns p+x.
+//
+// The whySafe string is ignored, so that the function still inlines
+// as efficiently as p+x, but all call sites should use the string to
+// record why the addition is safe, which is to say why the addition
+// does not cause x to advance to the very end of p's allocation
+// and therefore point incorrectly at the next block in memory.
+func addChecked(p unsafe.Pointer, x uintptr, whySafe string) unsafe.Pointer {
+	return unsafe.Pointer(uintptr(p) + x)
 }
 
-func (t rawType) Out(i int) Type {
-	panic("unimplemented: (reflect.Type).Out()")
+func (t *rawType) In(i int) Type {
+	if t.isNamed() {
+		named := (*namedType)(unsafe.Pointer(t))
+		t = named.elem
+	}
+
+	if t.Kind() != Func {
+		panic(errTypeField)
+	}
+	fType := (*funcType)(unsafe.Pointer(t))
+	if uint(i) >= uint(fType.inCount) {
+		panic("reflect: field index out of range")
+	}
+
+	pointer := (unsafe.Add(unsafe.Pointer(&fType.fields[0]), uintptr(i)*unsafe.Sizeof(unsafe.Pointer(nil))))
+	return (*(**rawType)(pointer))
+}
+
+func (t *rawType) Out(i int) Type {
+	if t.isNamed() {
+		named := (*namedType)(unsafe.Pointer(t))
+		t = named.elem
+	}
+
+	if t.Kind() != Func {
+		panic(errTypeField)
+	}
+
+	fType := (*funcType)(unsafe.Pointer(t))
+
+	if uint(i) >= uint(fType.outCount) {
+		panic("reflect: field index out of range")
+	}
+
+	// Shift the index by the number of input parameters.
+	i = i + int(fType.inCount)
+	pointer := (unsafe.Add(unsafe.Pointer(&fType.fields[0]), uintptr(i)*unsafe.Sizeof(unsafe.Pointer(nil))))
+	return (*(**rawType)(pointer))
 }
 
 // OverflowComplex reports whether the complex128 x cannot be represented by type t.

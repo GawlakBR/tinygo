@@ -489,6 +489,59 @@ func TestTinyStruct(t *testing.T) {
 	}
 }
 
+func TestTinyFunc(t *testing.T) {
+	type barStruct struct {
+		QuxString string
+		BazInt    int
+	}
+
+	type foobar func(bar barStruct, x int, v ...string) string
+
+	var fb foobar
+
+	reffb := TypeOf(fb)
+
+	numIn := reffb.NumIn()
+	if want := 3; numIn != want {
+		t.Errorf("NumIn=%v, want %v", numIn, want)
+	}
+
+	numOut := reffb.NumOut()
+	if want := 1; numOut != want {
+		t.Errorf("NumOut=%v, want %v", numOut, want)
+	}
+
+	in0 := reffb.In(0)
+	if want := TypeOf(barStruct{}); in0 != want {
+		t.Errorf("In(0)=%v, want %v", in0, want)
+	}
+
+	in1 := reffb.In(1)
+	if want := TypeOf(0); in1 != want {
+		t.Errorf("In(1)=%v, want %v", in1, want)
+	}
+
+	in2 := reffb.In(2)
+	if want := TypeOf([]string{}); in2 != want {
+		t.Errorf("In(2)=%v, want %v", in2, want)
+	}
+
+	out0 := reffb.Out(0)
+	if want := TypeOf(""); out0 != want {
+		t.Errorf("Out(0)=%v, want %v", out0, want)
+	}
+
+	isVariadic := reffb.IsVariadic()
+	if want := true; isVariadic != want {
+		t.Errorf("IsVariadic=%v, want %v", isVariadic, want)
+	}
+
+	if got, want := reffb.String(), "reflect_test.foobar"; got != want {
+		t.Errorf("Value.String()=%v, want %v", got, want)
+	}
+
+}
+
 func TestTinyZero(t *testing.T) {
 	s := "hello, world"
 	sptr := &s

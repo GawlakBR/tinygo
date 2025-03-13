@@ -243,12 +243,14 @@ func (c *compilerContext) getTypeCode(typ types.Type) llvm.Value {
 			typeFieldTypes = append(typeFieldTypes,
 				types.NewVar(token.NoPos, nil, "ptrTo", types.Typ[types.UnsafePointer]),
 			)
-			// TODO: methods
 		case *types.Signature:
 			typeFieldTypes = append(typeFieldTypes,
 				types.NewVar(token.NoPos, nil, "ptrTo", types.Typ[types.UnsafePointer]),
+				types.NewVar(token.NoPos, nil, "inCount", types.Typ[types.Uint16]),
+				types.NewVar(token.NoPos, nil, "outCount", types.Typ[types.Uint16]),
+				types.NewVar(token.NoPos, nil, "variadic", types.Typ[types.Bool]),
+				types.NewVar(token.NoPos, nil, "fields", types.NewArray(types.Typ[types.UnsafePointer], int64(typ.Params().Len()+typ.Results().Len()))),
 			)
-			// TODO: signature params and return values
 		}
 		if hasMethodSet {
 			// This method set is appended at the start of the struct. It is
@@ -408,8 +410,30 @@ func (c *compilerContext) getTypeCode(typ types.Type) llvm.Value {
 			typeFields = []llvm.Value{c.getTypeCode(types.NewPointer(typ))}
 			// TODO: methods
 		case *types.Signature:
-			typeFields = []llvm.Value{c.getTypeCode(types.NewPointer(typ))}
-			// TODO: params, return values, etc
+			v := 0
+			if typ.Variadic() {
+				v = 1
+			}
+
+			var vars []*types.Var
+			for i := 0; i < typ.Params().Len(); i++ {
+				vars = append(vars, typ.Params().At(i))
+			}
+
+			for i := 0; i < typ.Results().Len(); i++ {
+				vars = append(vars, typ.Results().At(i))
+			}
+
+			var fields []llvm.Value
+			for i := 0; i < len(vars); i++ {
+				fields = append(fields, c.getTypeCode(vars[i].Type()))
+			}
+			typeFields = []llvm.Value{c.getTypeCode(types.NewPointer(typ)),
+				llvm.ConstInt(c.ctx.Int16Type(), uint64(typ.Params().Len()), false),
+				llvm.ConstInt(c.ctx.Int16Type(), uint64(typ.Results().Len()), false),
+				llvm.ConstInt(c.ctx.Int1Type(), uint64(v), false),
+			}
+			typeFields = append(typeFields, llvm.ConstArray(c.dataPtrType, fields))
 		}
 		// Prepend metadata byte.
 		typeFields = append([]llvm.Value{

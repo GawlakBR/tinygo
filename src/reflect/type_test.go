@@ -13,6 +13,7 @@ func TestTypeFor(t *testing.T) {
 	type (
 		mystring string
 		myiface  interface{}
+		myfunc   func()
 	)
 
 	testcases := []struct {
@@ -25,6 +26,7 @@ func TestTypeFor(t *testing.T) {
 		{new(mystring), reflect.TypeFor[mystring]()},
 		{new(any), reflect.TypeFor[any]()},
 		{new(myiface), reflect.TypeFor[myiface]()},
+		{new(myfunc), reflect.TypeFor[myfunc]()},
 	}
 	for _, tc := range testcases {
 		want := reflect.ValueOf(tc.wantFrom).Elem().Type()
