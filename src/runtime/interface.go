@@ -6,6 +6,7 @@ package runtime
 // anything (including non-pointers).
 
 import (
+	"internal/reflectlite"
 	"reflect"
 	"unsafe"
 )
@@ -27,10 +28,10 @@ func decomposeInterface(i _interface) (unsafe.Pointer, unsafe.Pointer) {
 
 // Return true iff both interfaces are equal.
 func interfaceEqual(x, y interface{}) bool {
-	return reflectValueEqual(reflect.ValueOf(x), reflect.ValueOf(y))
+	return reflectValueEqual(reflectlite.ValueOf(x), reflectlite.ValueOf(y))
 }
 
-func reflectValueEqual(x, y reflect.Value) bool {
+func reflectValueEqual(x, y reflectlite.Value) bool {
 	// Note: doing a x.Type() == y.Type() comparison would not work here as that
 	// would introduce an infinite recursion: comparing two reflect.Type values
 	// is done with this reflectValueEqual runtime call.

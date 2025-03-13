@@ -132,14 +132,6 @@ func (v Value) IsZero() bool {
 	}
 }
 
-// Internal function only, do not use.
-//
-// RawType returns the raw, underlying type code. It is used in the runtime
-// package and needs to be exported for the runtime package to access it.
-func (v Value) RawType() *rawType {
-	return v.typecode
-}
-
 func (v Value) Kind() Kind {
 	return v.typecode.Kind()
 }
