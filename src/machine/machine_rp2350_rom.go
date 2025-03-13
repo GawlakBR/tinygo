@@ -229,16 +229,8 @@ void reset_usb_boot(uint32_t usb_activity_gpio_pin_mask, uint32_t disable_interf
 // src/rp2350/hardware_regs/include/hardware/regs/qmi.h
 
 #define QMI_DIRECT_CSR_EN_BITS      0x00000001
-#define QMI_DIRECT_CSR_OFFSET       0x00000000
 #define QMI_DIRECT_CSR_RXEMPTY_BITS 0x00010000
 #define QMI_DIRECT_CSR_TXFULL_BITS  0x00000400
-#define QMI_DIRECT_RX_OFFSET        0x00000008
-#define QMI_DIRECT_TX_OFFSET        0x00000004
-#define QMI_M0_RCMD_OFFSET          0x00000014
-#define QMI_M0_RFMT_OFFSET          0x00000010
-#define QMI_M0_TIMING_OFFSET        0x0000000c
-#define QMI_M0_WCMD_OFFSET          0x0000001c
-#define QMI_M0_WFMT_OFFSET          0x00000018
 #define QMI_M1_WFMT_RESET           0x00001000
 #define QMI_M1_WCMD_RESET           0x0000a002
 
@@ -247,7 +239,6 @@ void reset_usb_boot(uint32_t usb_activity_gpio_pin_mask, uint32_t disable_interf
 // src/rp2350/hardware_regs/include/hardware/regs/io_qspi.h
 
 #define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_BITS       0x00003000
-#define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_MSB        13
 #define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_LSB        12
 #define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_VALUE_LOW  0x2
 #define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_VALUE_HIGH 0x3
@@ -424,8 +415,7 @@ void ram_func flash_cs_force(bool high) {
 }
 
 // Adapted from flash_range_program()
-void ram_func flash_range_write(uint32_t offset, const uint8_t *data, size_t count)
-{
+void ram_func flash_range_write(uint32_t offset, const uint8_t *data, size_t count) {
     flash_connect_internal_fn flash_connect_internal_func = (flash_connect_internal_fn)rom_func_lookup_inline(ROM_FUNC_CONNECT_INTERNAL_FLASH);
     flash_exit_xip_fn flash_exit_xip_func = (flash_exit_xip_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_EXIT_XIP);
     flash_range_program_fn flash_range_program_func = (flash_range_program_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_RANGE_PROGRAM);
@@ -446,8 +436,7 @@ void ram_func flash_range_write(uint32_t offset, const uint8_t *data, size_t cou
 }
 
 // Adapted from flash_range_erase()
-void ram_func flash_erase_blocks(uint32_t offset, size_t count)
-{
+void ram_func flash_erase_blocks(uint32_t offset, size_t count) {
     flash_connect_internal_fn flash_connect_internal_func = (flash_connect_internal_fn)rom_func_lookup_inline(ROM_FUNC_CONNECT_INTERNAL_FLASH);
     flash_exit_xip_fn flash_exit_xip_func = (flash_exit_xip_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_EXIT_XIP);
     flash_range_erase_fn flash_range_erase_func = (flash_range_erase_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_RANGE_ERASE);
