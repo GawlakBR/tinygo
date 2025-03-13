@@ -315,6 +315,14 @@ typedef struct {
 
 
 // https://github.com/raspberrypi/pico-sdk
+// src/rp2_common/hardware_xip_cache/include/hardware/xip_cache.h
+
+// Noop unless using XIP Cache-as-SRAM
+// Non-noop version in src/rp2_common/hardware_xip_cache/xip_cache.c
+static inline void xip_cache_clean_all(void) {}
+
+
+// https://github.com/raspberrypi/pico-sdk
 // src/rp2_common/hardware_flash/include/hardware/flash.h
 
 #define FLASH_PAGE_SIZE (1u << 8)
@@ -420,7 +428,7 @@ void ram_func flash_range_write(uint32_t offset, const uint8_t *data, size_t cou
     flash_range_program_fn flash_range_program_func = (flash_range_program_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_RANGE_PROGRAM);
     flash_flush_cache_fn flash_flush_cache_func = (flash_flush_cache_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_FLUSH_CACHE);
     flash_init_boot2_copyout();
-    // xip_cache_clean_all(); // FIXME: Noop unless using XIP Cache-as-SRAM. Needed?
+    xip_cache_clean_all();
     flash_rp2350_qmi_save_state_t qmi_save;
     flash_rp2350_save_qmi_cs1(&qmi_save);
 
@@ -443,7 +451,7 @@ void ram_func flash_erase_blocks(uint32_t offset, size_t count)
     flash_flush_cache_fn flash_flush_cache_func = (flash_flush_cache_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_FLUSH_CACHE);
     flash_init_boot2_copyout();
     // Commit any pending writes to external RAM, to avoid losing them in the subsequent flush:
-    // xip_cache_clean_all(); // FIXME: Noop unless using XIP Cache-as-SRAM. Needed?
+    xip_cache_clean_all();
     flash_rp2350_qmi_save_state_t qmi_save;
     flash_rp2350_save_qmi_cs1(&qmi_save);
 
@@ -463,7 +471,7 @@ void ram_func flash_do_cmd(const uint8_t *txbuf, uint8_t *rxbuf, size_t count) {
     flash_exit_xip_fn flash_exit_xip_func = (flash_exit_xip_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_EXIT_XIP);
     flash_flush_cache_fn flash_flush_cache_func = (flash_flush_cache_fn)rom_func_lookup_inline(ROM_FUNC_FLASH_FLUSH_CACHE);
     flash_init_boot2_copyout();
-    // xip_cache_clean_all(); // FIXME: Noop unless using XIP Cache-as-SRAM. Needed?
+    xip_cache_clean_all();
 
     flash_rp2350_qmi_save_state_t qmi_save;
     flash_rp2350_save_qmi_cs1(&qmi_save);
