@@ -251,9 +251,6 @@ typedef enum {
     FLASH_DEVINFO_SIZE_MAX = 0xc
 } flash_devinfo_size_t;
 
-// FIXME: May need to be dynamic for different size flash chips
-#define PICO_FLASH_SIZE_BYTES (2 * 1024 * 1024)
-
 #define QMI_DIRECT_CSR_EN_BITS      0x00000001
 #define QMI_DIRECT_CSR_OFFSET       0x00000000
 #define QMI_DIRECT_CSR_RXEMPTY_BITS 0x00010000
