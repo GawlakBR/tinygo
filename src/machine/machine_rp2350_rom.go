@@ -13,6 +13,7 @@ typedef unsigned short uint16_t;
 typedef unsigned long uint32_t;
 typedef unsigned long size_t;
 typedef unsigned long uintptr_t;
+typedef long int intptr_t;
 
 typedef const volatile uint16_t io_ro_16;
 typedef const volatile uint32_t io_ro_32;
@@ -35,6 +36,13 @@ typedef void (*flash_range_program_fn)(uint32_t, const uint8_t*, size_t);
 static inline __attribute__((always_inline)) void __compiler_memory_barrier(void) {
     __asm__ volatile ("" : : : "memory");
 }
+
+// Sourced from the datasheet
+
+#define OTP_DATA_FLASH_DEVINFO_CS0_SIZE_BITS 0x0F00
+#define OTP_DATA_FLASH_DEVINFO_CS0_SIZE_LSB  8
+#define OTP_DATA_FLASH_DEVINFO_CS1_SIZE_BITS 0xF000
+#define OTP_DATA_FLASH_DEVINFO_CS1_SIZE_LSB  12
 
 
 // https://github.com/raspberrypi/pico-sdk
@@ -244,11 +252,6 @@ void reset_usb_boot(uint32_t usb_activity_gpio_pin_mask, uint32_t disable_interf
 #define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_VALUE_LOW  0x2
 #define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_VALUE_HIGH 0x3
 
-#define OTP_DATA_FLASH_DEVINFO_CS0_SIZE_BITS 0x0F00
-#define OTP_DATA_FLASH_DEVINFO_CS0_SIZE_LSB  8
-#define OTP_DATA_FLASH_DEVINFO_CS1_SIZE_BITS 0xF000
-#define OTP_DATA_FLASH_DEVINFO_CS1_SIZE_LSB  12
-
 
 // https://github.com/raspberrypi/pico-sdk
 // src/rp2350/hardware_structs/include/hardware/structs/io_qspi.h
@@ -348,8 +351,8 @@ static ram_func void flash_init_boot2_copyout(void) {
     boot2_copyout_valid = true;
 }
 
-static ram_func void flash_enable_xip_via_boot2() {
-	((void (*)(void))boot2_copyout+1)();
+static ram_func void flash_enable_xip_via_boot2(void) {
+    ((void (*)(void))((intptr_t)boot2_copyout+1))();
 }
 
 // This is a static symbol because the layout of FLASH_DEVINFO is liable to change from device to
