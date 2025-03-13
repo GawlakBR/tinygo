@@ -25,14 +25,8 @@ typedef unsigned int uint;
 #define true 1
 typedef int bool;
 
-#define _REG_(x)
-
 #define ram_func __attribute__((section(".ramfuncs"),noinline))
 
-// FIXME: Cleanup
-// typedef void __attribute__((noreturn)) (*rom_reset_usb_boot_fn)(uint32_t, uint32_t);
-// typedef void (*flash_init_boot2_copyout_fn)(void);
-// typedef void (*flash_enable_xip_via_boot2_fn)(void);
 typedef void (*flash_exit_xip_fn)(void);
 typedef void (*flash_flush_cache_fn)(void);
 typedef void (*flash_connect_internal_fn)(void);
@@ -42,15 +36,28 @@ static inline __attribute__((always_inline)) void __compiler_memory_barrier(void
     __asm__ volatile ("" : : : "memory");
 }
 
-#define hw_alias_check_addr(addr) ((uintptr_t)(addr))
-#define hw_set_alias_untyped(addr) ((void *)(REG_ALIAS_SET_BITS + hw_alias_check_addr(addr)))
-#define hw_clear_alias_untyped(addr) ((void *)(REG_ALIAS_CLR_BITS + hw_alias_check_addr(addr)))
-#define hw_xor_alias_untyped(addr) ((void *)(REG_ALIAS_XOR_BITS + hw_alias_check_addr(addr)))
+
+// https://github.com/raspberrypi/pico-sdk
+// src/rp2350/hardware_regs/include/hardware/regs/addressmap.h
 
 #define REG_ALIAS_RW_BITS  (0x0 << 12)
 #define REG_ALIAS_XOR_BITS (0x1 << 12)
 #define REG_ALIAS_SET_BITS (0x2 << 12)
 #define REG_ALIAS_CLR_BITS (0x3 << 12)
+
+#define XIP_BASE     0x10000000
+#define XIP_QMI_BASE 0x400d0000
+#define IO_QSPI_BASE 0x40030000
+#define BOOTRAM_BASE 0x400e0000
+
+
+// https://github.com/raspberrypi/pico-sdk
+// src/rp2_common/hardware_base/include/hardware/address_mapped.h
+
+#define hw_alias_check_addr(addr) ((uintptr_t)(addr))
+#define hw_set_alias_untyped(addr) ((void *)(REG_ALIAS_SET_BITS + hw_alias_check_addr(addr)))
+#define hw_clear_alias_untyped(addr) ((void *)(REG_ALIAS_CLR_BITS + hw_alias_check_addr(addr)))
+#define hw_xor_alias_untyped(addr) ((void *)(REG_ALIAS_XOR_BITS + hw_alias_check_addr(addr)))
 
 __attribute__((always_inline))
 static void hw_set_bits(io_rw_32 *addr, uint32_t mask) {
@@ -71,6 +78,7 @@ __attribute__((always_inline))
 static void hw_write_masked(io_rw_32 *addr, uint32_t values, uint32_t write_mask) {
     hw_xor_bits(addr, (*addr ^ values) & write_mask);
 }
+
 
 // https://github.com/raspberrypi/pico-sdk
 // src/rp2_common/pico_platform_compiler/include/pico/platform/compiler.h
@@ -145,6 +153,7 @@ static bool pico_processor_state_is_nonsecure(void) {
 #define BOOTROM_VTABLE_OFFSET 0x00
 #define BOOTROM_TABLE_LOOKUP_OFFSET     (BOOTROM_FUNC_TABLE_OFFSET + BOOTROM_WELL_KNOWN_PTR_SIZE)
 
+
 // https://github.com/raspberrypi/pico-sdk
 // src/common/boot_picoboot_headers/include/boot/picoboot_constants.h
 
@@ -159,6 +168,7 @@ static bool pico_processor_state_is_nonsecure(void) {
 #define RT_FLAG_FUNC_ARM_SEC    0x0004
 #define RT_FLAG_FUNC_ARM_NONSEC 0x0010
 #define RT_FLAG_DATA            0x0040
+
 
 // https://github.com/raspberrypi/pico-sdk
 // src/rp2_common/pico_bootrom/include/pico/bootrom.h
@@ -183,7 +193,6 @@ static void *rom_data_lookup_inline(uint32_t code) {
     return rom_table_lookup(code, RT_FLAG_DATA);
 }
 
-
 typedef int (*rom_reboot_fn)(uint32_t flags, uint32_t delay_ms, uint32_t p0, uint32_t p1);
 
 __attribute__((always_inline))
@@ -196,7 +205,6 @@ int rom_reboot(uint32_t flags, uint32_t delay_ms, uint32_t p0, uint32_t p1) {
 // https://github.com/raspberrypi/pico-sdk
 // src/rp2_common/pico_bootrom/bootrom.c
 
-
 void reset_usb_boot(uint32_t usb_activity_gpio_pin_mask, uint32_t disable_interface_mask) {
     uint32_t flags = disable_interface_mask;
     if (usb_activity_gpio_pin_mask) {
@@ -208,15 +216,117 @@ void reset_usb_boot(uint32_t usb_activity_gpio_pin_mask, uint32_t disable_interf
     __builtin_unreachable();
 }
 
-#define FLASH_BLOCK_ERASE_CMD 0xd8
+
+// https://github.com/raspberrypi/pico-sdk
+// src/rp2350/hardware_regs/include/hardware/regs/qmi.h
+
+#define QMI_DIRECT_CSR_EN_BITS      0x00000001
+#define QMI_DIRECT_CSR_OFFSET       0x00000000
+#define QMI_DIRECT_CSR_RXEMPTY_BITS 0x00010000
+#define QMI_DIRECT_CSR_TXFULL_BITS  0x00000400
+#define QMI_DIRECT_RX_OFFSET        0x00000008
+#define QMI_DIRECT_TX_OFFSET        0x00000004
+#define QMI_M0_RCMD_OFFSET          0x00000014
+#define QMI_M0_RFMT_OFFSET          0x00000010
+#define QMI_M0_TIMING_OFFSET        0x0000000c
+#define QMI_M0_WCMD_OFFSET          0x0000001c
+#define QMI_M0_WFMT_OFFSET          0x00000018
+#define QMI_M1_WFMT_RESET           0x00001000
+#define QMI_M1_WCMD_RESET           0x0000a002
+
+
+// https://github.com/raspberrypi/pico-sdk
+// src/rp2350/hardware_regs/include/hardware/regs/io_qspi.h
+
+#define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_BITS       0x00003000
+#define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_MSB        13
+#define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_LSB        12
+#define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_VALUE_LOW  0x2
+#define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_VALUE_HIGH 0x3
+
+#define OTP_DATA_FLASH_DEVINFO_CS0_SIZE_BITS 0x0F00
+#define OTP_DATA_FLASH_DEVINFO_CS0_SIZE_LSB  8
+#define OTP_DATA_FLASH_DEVINFO_CS1_SIZE_BITS 0xF000
+#define OTP_DATA_FLASH_DEVINFO_CS1_SIZE_LSB  12
+
+
+// https://github.com/raspberrypi/pico-sdk
+// src/rp2350/hardware_structs/include/hardware/structs/io_qspi.h
+
+typedef struct {
+    io_rw_32 inte; // IO_QSPI_PROC0_INTE
+    io_rw_32 intf; // IO_QSPI_PROC0_INTF
+    io_ro_32 ints; // IO_QSPI_PROC0_INTS
+} io_qspi_irq_ctrl_hw_t;
+
+typedef struct {
+    io_ro_32 status; // IO_QSPI_GPIO_QSPI_SCLK_STATUS
+    io_rw_32 ctrl;   // IO_QSPI_GPIO_QSPI_SCLK_CTRL
+} io_qspi_status_ctrl_hw_t;
+
+typedef struct {
+    io_ro_32 usbphy_dp_status;                  // IO_QSPI_USBPHY_DP_STATUS
+    io_rw_32 usbphy_dp_ctrl;                    // IO_QSPI_USBPHY_DP_CTRL
+    io_ro_32 usbphy_dm_status;                  // IO_QSPI_USBPHY_DM_STATUS
+    io_rw_32 usbphy_dm_ctrl;                    // IO_QSPI_USBPHY_DM_CTRL
+    io_qspi_status_ctrl_hw_t io[6];
+    uint32_t _pad0[112];
+    io_ro_32 irqsummary_proc0_secure;           // IO_QSPI_IRQSUMMARY_PROC0_SECURE
+    io_ro_32 irqsummary_proc0_nonsecure;        // IO_QSPI_IRQSUMMARY_PROC0_NONSECURE
+    io_ro_32 irqsummary_proc1_secure;           // IO_QSPI_IRQSUMMARY_PROC1_SECURE
+    io_ro_32 irqsummary_proc1_nonsecure;        // IO_QSPI_IRQSUMMARY_PROC1_NONSECURE
+    io_ro_32 irqsummary_dormant_wake_secure;    // IO_QSPI_IRQSUMMARY_DORMANT_WAKE_SECURE
+    io_ro_32 irqsummary_dormant_wake_nonsecure; // IO_QSPI_IRQSUMMARY_DORMANT_WAKE_NONSECURE
+    io_rw_32 intr;                              // IO_QSPI_INTR
+
+    union {
+        struct {
+            io_qspi_irq_ctrl_hw_t proc0_irq_ctrl;
+            io_qspi_irq_ctrl_hw_t proc1_irq_ctrl;
+            io_qspi_irq_ctrl_hw_t dormant_wake_irq_ctrl;
+        };
+        io_qspi_irq_ctrl_hw_t irq_ctrl[3];
+    };
+} io_qspi_hw_t;
+
+#define io_qspi_hw ((io_qspi_hw_t *)IO_QSPI_BASE)
+
+
+// https://github.com/raspberrypi/pico-sdk
+// src/rp2350/hardware_structs/include/hardware/structs/qmi.h
+
+typedef struct {
+    io_rw_32 timing; // QMI_M0_TIMING
+    io_rw_32 rfmt;   // QMI_M0_RFMT
+    io_rw_32 rcmd;   // QMI_M0_RCMD
+    io_rw_32 wfmt;   // QMI_M0_WFMT
+    io_rw_32 wcmd;   // QMI_M0_WCMD
+} qmi_mem_hw_t;
+
+typedef struct {
+    io_rw_32 direct_csr; // QMI_DIRECT_CSR
+    io_wo_32 direct_tx;  // QMI_DIRECT_TX
+    io_ro_32 direct_rx;  // QMI_DIRECT_RX
+    qmi_mem_hw_t m[2];
+    io_rw_32 atrans[8];  // QMI_ATRANS0
+} qmi_hw_t;
+
+#define qmi_hw ((qmi_hw_t *)XIP_QMI_BASE)
+
+
+// https://github.com/raspberrypi/pico-sdk
+// src/rp2_common/hardware_flash/include/hardware/flash.h
 
 #define FLASH_PAGE_SIZE (1u << 8)
 #define FLASH_SECTOR_SIZE (1u << 12)
 #define FLASH_BLOCK_SIZE (1u << 16)
 
+
+// https://github.com/raspberrypi/pico-sdk
+// src/rp2_common/hardware_flash/flash.c
+
 #define BOOT2_SIZE_WORDS 64
-#define XIP_BASE 0x10000000
-#define BOOTRAM_BASE 0x400e0000
+#define FLASH_BLOCK_ERASE_CMD 0xd8
 
 static uint32_t boot2_copyout[BOOT2_SIZE_WORDS];
 static bool boot2_copyout_valid = false;
@@ -234,133 +344,6 @@ static ram_func void flash_enable_xip_via_boot2() {
 	((void (*)(void))boot2_copyout+1)();
 }
 
-typedef enum {
-    FLASH_DEVINFO_SIZE_NONE = 0x0,
-    FLASH_DEVINFO_SIZE_8K = 0x1,
-    FLASH_DEVINFO_SIZE_16K = 0x2,
-    FLASH_DEVINFO_SIZE_32K = 0x3,
-    FLASH_DEVINFO_SIZE_64K = 0x4,
-    FLASH_DEVINFO_SIZE_128K = 0x5,
-    FLASH_DEVINFO_SIZE_256K = 0x6,
-    FLASH_DEVINFO_SIZE_512K = 0x7,
-    FLASH_DEVINFO_SIZE_1M = 0x8,
-    FLASH_DEVINFO_SIZE_2M = 0x9,
-    FLASH_DEVINFO_SIZE_4M = 0xa,
-    FLASH_DEVINFO_SIZE_8M = 0xb,
-    FLASH_DEVINFO_SIZE_16M = 0xc,
-    FLASH_DEVINFO_SIZE_MAX = 0xc
-} flash_devinfo_size_t;
-
-#define QMI_DIRECT_CSR_EN_BITS      0x00000001
-#define QMI_DIRECT_CSR_OFFSET       0x00000000
-#define QMI_DIRECT_CSR_RXEMPTY_BITS 0x00010000
-#define QMI_DIRECT_CSR_TXFULL_BITS  0x00000400
-#define QMI_DIRECT_RX_OFFSET        0x00000008
-#define QMI_DIRECT_TX_OFFSET        0x00000004
-
-#define QMI_M0_RCMD_OFFSET   0x00000014
-#define QMI_M0_RFMT_OFFSET   0x00000010
-#define QMI_M0_TIMING_OFFSET 0x0000000c
-#define QMI_M0_WCMD_OFFSET   0x0000001c
-#define QMI_M0_WFMT_OFFSET   0x00000018
-#define QMI_M1_WFMT_RESET    0x00001000
-#define QMI_M1_WCMD_RESET    0x0000a002
-
-#define XIP_QMI_BASE 0x400d0000
-
-#define IO_QSPI_BASE                                 0x40030000
-#define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_BITS       0x00003000
-#define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_MSB        13
-#define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_LSB        12
-#define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_VALUE_LOW  0x2
-#define IO_QSPI_GPIO_QSPI_SS_CTRL_OUTOVER_VALUE_HIGH 0x3
-
-#define OTP_DATA_FLASH_DEVINFO_CS0_SIZE_BITS 0x0F00
-#define OTP_DATA_FLASH_DEVINFO_CS0_SIZE_LSB  8
-#define OTP_DATA_FLASH_DEVINFO_CS1_SIZE_BITS 0xF000
-#define OTP_DATA_FLASH_DEVINFO_CS1_SIZE_LSB  12
-
-typedef struct {
-    _REG_(IO_QSPI_PROC0_INTE_OFFSET)
-    io_rw_32 inte;
-    _REG_(IO_QSPI_PROC0_INTF_OFFSET)
-    io_rw_32 intf;
-    _REG_(IO_QSPI_PROC0_INTS_OFFSET)
-    io_ro_32 ints;
-} io_qspi_irq_ctrl_hw_t;
-
-typedef struct {
-    _REG_(IO_QSPI_GPIO_QSPI_SCLK_STATUS_OFFSET)
-    io_ro_32 status;
-    _REG_(IO_QSPI_GPIO_QSPI_SCLK_CTRL_OFFSET)
-    io_rw_32 ctrl;
-} io_qspi_status_ctrl_hw_t;
-
-typedef struct {
-    _REG_(IO_QSPI_USBPHY_DP_STATUS_OFFSET)
-    io_ro_32 usbphy_dp_status;
-    _REG_(IO_QSPI_USBPHY_DP_CTRL_OFFSET)
-    io_rw_32 usbphy_dp_ctrl;
-    _REG_(IO_QSPI_USBPHY_DM_STATUS_OFFSET)
-    io_ro_32 usbphy_dm_status;
-    _REG_(IO_QSPI_USBPHY_DM_CTRL_OFFSET)
-    io_rw_32 usbphy_dm_ctrl;
-    io_qspi_status_ctrl_hw_t io[6];
-    uint32_t _pad0[112];
-    _REG_(IO_QSPI_IRQSUMMARY_PROC0_SECURE_OFFSET)
-    io_ro_32 irqsummary_proc0_secure;
-    _REG_(IO_QSPI_IRQSUMMARY_PROC0_NONSECURE_OFFSET)
-    io_ro_32 irqsummary_proc0_nonsecure;
-    _REG_(IO_QSPI_IRQSUMMARY_PROC1_SECURE_OFFSET)
-    io_ro_32 irqsummary_proc1_secure;
-    _REG_(IO_QSPI_IRQSUMMARY_PROC1_NONSECURE_OFFSET)
-    io_ro_32 irqsummary_proc1_nonsecure;
-    _REG_(IO_QSPI_IRQSUMMARY_DORMANT_WAKE_SECURE_OFFSET)
-    io_ro_32 irqsummary_dormant_wake_secure;
-    _REG_(IO_QSPI_IRQSUMMARY_DORMANT_WAKE_NONSECURE_OFFSET)
-    io_ro_32 irqsummary_dormant_wake_nonsecure;
-    _REG_(IO_QSPI_INTR_OFFSET)
-    io_rw_32 intr;
-
-    union {
-        struct {
-            io_qspi_irq_ctrl_hw_t proc0_irq_ctrl;
-            io_qspi_irq_ctrl_hw_t proc1_irq_ctrl;
-            io_qspi_irq_ctrl_hw_t dormant_wake_irq_ctrl;
-        };
-        io_qspi_irq_ctrl_hw_t irq_ctrl[3];
-    };
-} io_qspi_hw_t;
-
-#define io_qspi_hw ((io_qspi_hw_t *)IO_QSPI_BASE)
-
-typedef struct {
-    _REG_(QMI_M0_TIMING_OFFSET)
-    io_rw_32 timing;
-    _REG_(QMI_M0_RFMT_OFFSET)
-    io_rw_32 rfmt;
-    _REG_(QMI_M0_RCMD_OFFSET)
-    io_rw_32 rcmd;
-    _REG_(QMI_M0_WFMT_OFFSET)
-    io_rw_32 wfmt;
-    _REG_(QMI_M0_WCMD_OFFSET)
-    io_rw_32 wcmd;
-} qmi_mem_hw_t;
-
-typedef struct {
-    _REG_(QMI_DIRECT_CSR_OFFSET)
-    io_rw_32 direct_csr;
-    _REG_(QMI_DIRECT_TX_OFFSET)
-    io_wo_32 direct_tx;
-    _REG_(QMI_DIRECT_RX_OFFSET)
-    io_ro_32 direct_rx;
-    qmi_mem_hw_t m[2];
-    _REG_(QMI_ATRANS0_OFFSET)
-    io_rw_32 atrans[8];
-} qmi_hw_t;
-
-#define qmi_hw ((qmi_hw_t *)XIP_QMI_BASE)
-
 // This is a static symbol because the layout of FLASH_DEVINFO is liable to change from device to
 // device, so fields must have getters/setters.
 static io_rw_16 * ram_func flash_devinfo_ptr(void) {
@@ -371,14 +354,14 @@ static io_rw_16 * ram_func flash_devinfo_ptr(void) {
 
 // This is a RAM function because may be called during flash programming to enable save/restore of
 // QMI window 1 registers on RP2350:
-flash_devinfo_size_t ram_func flash_devinfo_get_cs_size(uint cs) {
+uint8_t ram_func flash_devinfo_get_cs_size(uint cs) {
     io_ro_16 *devinfo = (io_ro_16 *) flash_devinfo_ptr();
     if (cs == 0u) {
-        return (flash_devinfo_size_t) (
+        return (uint8_t) (
             (*devinfo & OTP_DATA_FLASH_DEVINFO_CS0_SIZE_BITS) >> OTP_DATA_FLASH_DEVINFO_CS0_SIZE_LSB
         );
     } else {
-        return (flash_devinfo_size_t) (
+        return (uint8_t) (
             (*devinfo & OTP_DATA_FLASH_DEVINFO_CS1_SIZE_BITS) >> OTP_DATA_FLASH_DEVINFO_CS1_SIZE_LSB
         );
     }
@@ -399,7 +382,7 @@ static ram_func void flash_rp2350_save_qmi_cs1(flash_rp2350_qmi_save_state_t *st
 }
 
 static ram_func void flash_rp2350_restore_qmi_cs1(const flash_rp2350_qmi_save_state_t *state) {
-    if (flash_devinfo_get_cs_size(1) == FLASH_DEVINFO_SIZE_NONE) {
+    if (flash_devinfo_get_cs_size(1) == 0) {
         // Case 1: The RP2350 ROM sets QMI to a clean (03h read) configuration
         // during flash_exit_xip(), even though when CS1 is not enabled via
         // FLASH_DEVINFO it does not issue an XIP exit sequence to CS1. In
@@ -429,7 +412,7 @@ void ram_func flash_cs_force(bool high) {
     );
 }
 
-// See https://github.com/raspberrypi/pico-sdk/blob/ee68c78d0afae2b69c03ae1a72bf5cc267a2d94c/src/rp2_common/hardware_flash/flash.c#L151
+// Adapted from flash_range_program()
 void ram_func flash_range_write(uint32_t offset, const uint8_t *data, size_t count)
 {
     flash_connect_internal_fn flash_connect_internal_func = (flash_connect_internal_fn)rom_func_lookup_inline(ROM_FUNC_CONNECT_INTERNAL_FLASH);
@@ -451,7 +434,7 @@ void ram_func flash_range_write(uint32_t offset, const uint8_t *data, size_t cou
     flash_rp2350_restore_qmi_cs1(&qmi_save);
 }
 
-// See https://github.com/raspberrypi/pico-sdk/blob/ee68c78d0afae2b69c03ae1a72bf5cc267a2d94c/src/rp2_common/hardware_flash/flash.c#L114
+// Adapted from flash_range_erase()
 void ram_func flash_erase_blocks(uint32_t offset, size_t count)
 {
     flash_connect_internal_fn flash_connect_internal_func = (flash_connect_internal_fn)rom_func_lookup_inline(ROM_FUNC_CONNECT_INTERNAL_FLASH);
