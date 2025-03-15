@@ -1,4 +1,4 @@
-//go:build rp2350
+//go:build tinygo && rp2350
 
 package machine
 
