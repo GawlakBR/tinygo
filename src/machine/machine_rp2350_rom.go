@@ -20,7 +20,6 @@ typedef const volatile uint32_t io_ro_32;
 typedef volatile uint16_t io_rw_16;
 typedef volatile uint32_t io_rw_32;
 typedef volatile uint32_t io_wo_32;
-typedef unsigned int uint;
 
 #define false 0
 #define true 1
@@ -37,7 +36,9 @@ static inline __attribute__((always_inline)) void __compiler_memory_barrier(void
     __asm__ volatile ("" : : : "memory");
 }
 
-// Sourced from the datasheet
+// https://datasheets.raspberrypi.com/rp2350/rp2350-datasheet.pdf
+// 13.9. Predefined OTP Data Locations
+// OTP_DATA: FLASH_DEVINFO Register
 
 #define OTP_DATA_FLASH_DEVINFO_CS0_SIZE_BITS 0x0F00
 #define OTP_DATA_FLASH_DEVINFO_CS0_SIZE_LSB  8
@@ -356,7 +357,7 @@ static io_rw_16 * ram_func flash_devinfo_ptr(void) {
 
 // This is a RAM function because may be called during flash programming to enable save/restore of
 // QMI window 1 registers on RP2350:
-uint8_t ram_func flash_devinfo_get_cs_size(uint cs) {
+uint8_t ram_func flash_devinfo_get_cs_size(uint8_t cs) {
     io_ro_16 *devinfo = (io_ro_16 *) flash_devinfo_ptr();
     if (cs == 0u) {
         return (uint8_t) (
