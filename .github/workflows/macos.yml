@@ -25,6 +25,8 @@ jobs:
           - os: macos-14
             goarch: arm64
     runs-on: ${{ matrix.os }}
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - name: Install Dependencies
         run: |
@@ -119,8 +121,35 @@ jobs:
         with:
           name: darwin-${{ matrix.goarch }}-double-zipped-${{ steps.version.outputs.version }}
           path: build/tinygo${{ steps.version.outputs.version }}.darwin-${{ matrix.goarch }}.tar.gz
+  smoke-test-macos:
+    runs-on: macos-latest # this is arm64
+    needs: build-macos
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      - name: Download release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: darwin-arm64-double-zipped-${{ needs.build-macos.outputs.version }}
+      - name: Extract release tarball
+        run: |
+          mkdir -p ~/lib
+          tar -C ~/lib -xf tinygo${{ needs.build-macos.outputs.version }}.darwin-arm64.tar.gz
+          ln -s ~/lib/tinygo/bin/tinygo ~/go/bin/tinygo
       - name: Smoke tests
-        run: make smoketest TINYGO=$(PWD)/build/tinygo
+        run: |
+          tinygo version
+          tinygo env
+          echo -n "PWD: "
+          pwd
+          ls -l ~/lib/tinygo
+          TINYGOROOT=/Users/runner/work/tinygo/tinygo make smoketest
+          exit 1 # this is a test
   test-macos-homebrew:
     name: homebrew-install
     runs-on: macos-latest
