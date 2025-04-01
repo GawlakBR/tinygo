@@ -21,10 +21,18 @@ type Task struct {
 	// state is the underlying running state of the task.
 	state state
 
+	RunState uint8
+
 	// DeferFrame stores a pointer to the (stack allocated) defer frame of the
 	// goroutine that is used for the recover builtin.
 	DeferFrame unsafe.Pointer
 }
+
+const (
+	RunStatePaused = iota
+	RunStateRunning
+	RunStateResuming
+)
 
 // DataUint32 returns the Data field as a uint32. The value is only valid after
 // setting it through SetDataUint32 or by storing to it using DataAtomicUint32.

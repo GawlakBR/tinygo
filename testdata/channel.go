@@ -12,6 +12,7 @@ var wg sync.WaitGroup
 type intchan chan int
 
 func main() {
+	time.Sleep(time.Second * 2)
 	ch := make(chan int, 2)
 	ch <- 1
 	println("len, cap of channel:", len(ch), cap(ch), ch == nil)

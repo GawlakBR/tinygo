@@ -1,4 +1,4 @@
-//go:build (gc.conservative || gc.precise) && !tinygo.wasm && !scheduler.threads
+//go:build (gc.conservative || gc.precise) && !tinygo.wasm && !scheduler.threads && !scheduler.cores
 
 package runtime
 

@@ -13,11 +13,15 @@ type stringer interface {
 // This is a no-op lock on systems that do not have parallelism.
 var printLock task.PMutex
 
+//var printLocked interrupt.State
+
 func printlock() {
+	//printLocked = serialLock()
 	printLock.Lock()
 }
 
 func printunlock() {
+	//serialUnlock(printLocked)
 	printLock.Unlock()
 }
 

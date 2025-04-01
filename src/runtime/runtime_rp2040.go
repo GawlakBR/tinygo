@@ -5,6 +5,7 @@ package runtime
 import (
 	"device/arm"
 	"device/rp"
+	"internal/task"
 	"machine"
 	"machine/usb/cdc"
 	"reflect"
@@ -56,9 +57,9 @@ func waitForEvents() {
 }
 
 func putchar(c byte) {
-	mask := serialLock()
+	//mask := serialLock()
 	machine.Serial.WriteByte(c)
-	serialUnlock(mask)
+	//serialUnlock(mask)
 }
 
 func getchar() byte {
@@ -137,7 +138,7 @@ var core1StartSequence = [...]uint32{
 	uint32(uintptr(reflect.ValueOf(runCore1).Pointer())),
 }
 
-func startOtherCores() {
+func startSecondaryCores() {
 	// Start the second core of the RP2040.
 	// See section 2.8.2 in the datasheet.
 	seq := 0
@@ -160,21 +161,30 @@ func startOtherCores() {
 	}
 }
 
+var core1Task task.Task
+
 func runCore1() {
+	//until := ticks() + nanosecondsToTicks(1900e6)
+	//for ticks() < until {
+	//}
+	println("starting core 1")
+
+	runSecondary(1, &core1Task)
+
 	// Just blink a LED to show that this core is running.
 	// TODO: use a real scheduler.
-	led := machine.GP0
-	led.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	const cycles = 7000_000
-	for {
-		for i := 0; i < cycles; i++ {
-			led.Low()
-		}
+	//led := machine.GP16
+	//led.Configure(machine.PinConfig{Mode: machine.PinOutput})
+	//const cycles = 7000_000
+	//for {
+	//	for i := 0; i < cycles; i++ {
+	//		led.Low()
+	//	}
 
-		for i := 0; i < cycles; i++ {
-			led.High()
-		}
-	}
+	//	for i := 0; i < cycles; i++ {
+	//		led.High()
+	//	}
+	//}
 }
 
 func currentCPU() uint32 {
@@ -223,27 +233,36 @@ func futexUnlock(mask interrupt.State) {
 }
 
 var schedulerLockMasks [numCPU]interrupt.State
+var schedulerLocked = false
 
 // WARNING: doesn't check for deadlocks!
 func schedulerLock() {
 	//schedulerLockMasks[currentCPU()] = interrupt.Disable()
 	for rp.SIO.SPINLOCK2.Get() == 0 {
 	}
+	schedulerLocked = true
 }
 
 func schedulerUnlock() {
+	if !schedulerLocked {
+		println("!!! not locked at unlock")
+		for {
+		}
+	}
+	schedulerLocked = false
 	rp.SIO.SPINLOCK2.Set(0)
 	//interrupt.Restore(schedulerLockMasks[currentCPU()])
 }
 
 func serialLock() interrupt.State {
-	mask := interrupt.Disable()
+	//mask := interrupt.Disable()
 	for rp.SIO.SPINLOCK3.Get() == 0 {
 	}
-	return mask
+	//return mask
+	return 0
 }
 
 func serialUnlock(mask interrupt.State) {
 	rp.SIO.SPINLOCK3.Set(0)
-	interrupt.Restore(mask)
+	//interrupt.Restore(mask)
 }

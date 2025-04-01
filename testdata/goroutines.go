@@ -5,19 +5,27 @@ import (
 	"time"
 )
 
-func init() {
-	println("init")
-	go println("goroutine in init")
-	time.Sleep(1 * time.Millisecond)
-}
+//func init() {
+//	println("\n----")
+//	println("init")
+//	go println("goroutine in init")
+//	time.Sleep(1 * time.Millisecond)
+//}
 
 func main() {
+	//for i := 0; i < 2; i++ {
+	//	println("...")
+	//	time.Sleep(time.Second)
+	//}
+
 	println("main 1")
 	go sub()
 	time.Sleep(1 * time.Millisecond)
 	println("main 2")
 	time.Sleep(2 * time.Millisecond)
 	println("main 3")
+	//time.Sleep(2 * time.Millisecond)
+	//println("main 4")
 
 	// Await a blocking call.
 	println("wait:")
@@ -101,6 +109,8 @@ func sub() {
 	println("sub 1")
 	time.Sleep(2 * time.Millisecond)
 	println("sub 2")
+	//time.Sleep(2 * time.Millisecond)
+	//println("sub 3")
 }
 
 func wait() {

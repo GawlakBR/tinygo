@@ -15,6 +15,8 @@ type timeUnit int64
 //go:linkname systemInit SystemInit
 func systemInit()
 
+const numCPU = 1
+
 //export Reset_Handler
 func main() {
 	if nrf.FPUPresent {
@@ -144,4 +146,32 @@ func rtc_sleep(ticks uint32) {
 	for rtc_wakeup.Get() == 0 {
 		waitForEvents()
 	}
+}
+
+func atomicLockImpl() interrupt.State {
+	mask := interrupt.Disable()
+	return mask
+}
+
+func atomicUnlockImpl(mask interrupt.State) {
+	interrupt.Restore(mask)
+}
+
+func futexLock() interrupt.State {
+	mask := interrupt.Disable()
+	return mask
+}
+
+func futexUnlock(mask interrupt.State) {
+	interrupt.Restore(mask)
+}
+
+func schedulerLock() {
+}
+
+func schedulerUnlock() {
+}
+
+func currentCPU() uint32 {
+	return 0
 }

@@ -11,6 +11,12 @@ import (
 	"unsafe"
 )
 
+const numCPU = 1
+
+func currentCPU() int {
+	return 0
+}
+
 //export write
 func libc_write(fd int32, buf unsafe.Pointer, count uint) int
 
