@@ -239,11 +239,17 @@ func procUnpin() {
 }
 
 func hardwareRand() (n uint64, ok bool) {
-	var n1, n2 uint32
-	errCode1 := libc_rand_s(&n1)
-	errCode2 := libc_rand_s(&n2)
-	n = uint64(n1)<<32 | uint64(n2)
-	ok = errCode1 == 0 && errCode2 == 0
+	if GOARCH == "386" {
+		// Use the old RtlGenRandom, introduced in Windows XP.
+		ok = RtlGenRandom(unsafe.Pointer(&n), 8)
+	} else {
+		// Use the newer secure rand_s function that's part of UCRT.
+		var n1, n2 uint32
+		errCode1 := libc_rand_s(&n1)
+		errCode2 := libc_rand_s(&n2)
+		n = uint64(n1)<<32 | uint64(n2)
+		ok = errCode1 == 0 && errCode2 == 0
+	}
 	return
 }
 
@@ -253,3 +259,10 @@ func hardwareRand() (n uint64, ok bool) {
 //
 //export rand_s
 func libc_rand_s(randomValue *uint32) int32
+
+// This function is part of advapi32.dll, and is called SystemFunction036 for
+// some reason. It's available on Windows XP and newer.
+// See: https://learn.microsoft.com/en-us/windows/win32/api/ntsecapi/nf-ntsecapi-rtlgenrandom
+//
+//export SystemFunction036
+func RtlGenRandom(buf unsafe.Pointer, len int) bool

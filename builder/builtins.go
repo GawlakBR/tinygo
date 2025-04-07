@@ -3,6 +3,7 @@ package builder
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/tinygo-org/tinygo/compileopts"
 	"github.com/tinygo-org/tinygo/goenv"
@@ -229,6 +230,10 @@ var libCompilerRT = Library{
 			builtins = append(builtins, avrBuiltins...)
 		case "x86_64", "aarch64", "riscv64": // any 64-bit arch
 			builtins = append(builtins, genericBuiltins128...)
+		case "i386":
+			if strings.Split(target, "-")[2] == "windows" {
+				builtins = append(builtins, "i386/chkstk.S")
+			}
 		}
 		return builtins, nil
 	},

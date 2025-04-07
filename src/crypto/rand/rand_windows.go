@@ -21,6 +21,7 @@ func (r *reader) Read(b []byte) (n int, err error) {
 		// Call rand_s every four bytes because it's a C int (always 32-bit in
 		// Windows).
 		if i%4 == 0 {
+			// TODO: use RtlGenRandom on GOARCH=386.
 			errCode := libc_rand_s(&randomByte)
 			if errCode != 0 {
 				// According to the documentation, it can return an error.
