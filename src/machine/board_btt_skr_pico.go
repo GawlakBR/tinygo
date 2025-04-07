@@ -35,8 +35,8 @@ const (
 
 // TMC stepper driver UART
 const (
-	TMC_UART_TX = GPIO8
-	TMC_UART_RX = GPIO9
+	TMC_UART_TX = UART1_TX_PIN
+	TMC_UART_RX = UART1_RX_PIN
 )
 
 // Endstops
@@ -78,23 +78,23 @@ const (
 	xoscFreq = 12 // MHz
 )
 
-// I2C. We don't have this available, so map it to defaults
+// I2C. We don't have this available
 const (
-	I2C0_SDA_PIN = GPIO4
-	I2C0_SCL_PIN = GPIO5
+	I2C0_SDA_PIN = NoPin
+	I2C0_SCL_PIN = NoPin
 
-	I2C1_SDA_PIN = GPIO2
-	I2C1_SCL_PIN = GPIO3
+	I2C1_SDA_PIN = NoPin
+	I2C1_SCL_PIN = NoPin
 )
 
-// SPI default pins
+// SPI. We don't have this available
 const (
-	SPI0_SCK_PIN = GPIO18
-	SPI0_SDO_PIN = GPIO19 // Tx
-	SPI0_SDI_PIN = GPIO16 // Rx
-	SPI1_SCK_PIN = GPIO10
-	SPI1_SDO_PIN = GPIO11 // Tx
-	SPI1_SDI_PIN = GPIO12 // Rx
+	SPI0_SCK_PIN = NoPin
+	SPI0_SDO_PIN = NoPin // Tx
+	SPI0_SDI_PIN = NoPin // Rx
+	SPI1_SCK_PIN = NoPin
+	SPI1_SDO_PIN = NoPin // Tx
+	SPI1_SDI_PIN = NoPin // Rx
 )
 
 // USB CDC identifiers
@@ -112,8 +112,8 @@ var (
 const (
 	UART0_TX_PIN = GPIO0
 	UART0_RX_PIN = GPIO1
-	UART1_TX_PIN = TMC_UART_TX
-	UART1_RX_PIN = TMC_UART_RX
+	UART1_TX_PIN = GPIO8
+	UART1_RX_PIN = GPIO9
 	UART_TX_PIN  = UART0_TX_PIN
 	UART_RX_PIN  = UART0_RX_PIN
 )
