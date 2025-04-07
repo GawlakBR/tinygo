@@ -90,11 +90,11 @@ const (
 // SPI. We don't have this available
 const (
 	SPI0_SCK_PIN = NoPin
-	SPI0_SDO_PIN = NoPin // Tx
-	SPI0_SDI_PIN = NoPin // Rx
+	SPI0_SDO_PIN = NoPin
+	SPI0_SDI_PIN = NoPin
 	SPI1_SCK_PIN = NoPin
-	SPI1_SDO_PIN = NoPin // Tx
-	SPI1_SDI_PIN = NoPin // Rx
+	SPI1_SDO_PIN = NoPin
+	SPI1_SDI_PIN = NoPin
 )
 
 // USB CDC identifiers
