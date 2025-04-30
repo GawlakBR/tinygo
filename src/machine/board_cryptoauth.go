@@ -1,3 +1,4 @@
+//go:build sam && atsamd21 && cryptoauth
 package machine
 
 const (
