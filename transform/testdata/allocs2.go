@@ -1,11 +1,13 @@
 package main
 
+import "unsafe"
+
 func main() {
 	n1 := 5
 	derefInt(&n1)
 
 	// This should eventually be modified to not escape.
-	n2 := 6 // OUT: object allocated on the heap: escapes at line 9
+	n2 := 6 // OUT: object allocated on the heap: escapes at line 11
 	returnIntPtr(&n2)
 
 	s1 := make([]int, 3)
@@ -15,7 +17,7 @@ func main() {
 	readIntSlice(s2[:])
 
 	// This should also be modified to not escape.
-	s3 := make([]int, 3) // OUT: object allocated on the heap: escapes at line 19
+	s3 := make([]int, 3) // OUT: object allocated on the heap: escapes at line 21
 	returnIntSlice(s3)
 
 	useSlice(make([]int, getUnknownNumber())) // OUT: object allocated on the heap: size is not constant
@@ -23,14 +25,14 @@ func main() {
 	s4 := make([]byte, 300) // OUT: object allocated on the heap: object size 300 exceeds maximum stack allocation size 256
 	readByteSlice(s4)
 
-	s5 := make([]int, 4) // OUT: object allocated on the heap: escapes at line 27
+	s5 := make([]int, 4) // OUT: object allocated on the heap: escapes at line 29
 	_ = append(s5, 5)
 
 	s6 := make([]int, 3)
 	s7 := []int{1, 2, 3}
 	copySlice(s6, s7)
 
-	c1 := getComplex128() // OUT: object allocated on the heap: escapes at line 34
+	c1 := getComplex128() // OUT: object allocated on the heap: escapes at line 36
 	useInterface(c1)
 
 	n3 := 5
@@ -38,13 +40,13 @@ func main() {
 		return n3
 	}()
 
-	callVariadic(3, 5, 8) // OUT: object allocated on the heap: escapes at line 41
+	callVariadic(3, 5, 8) // OUT: object allocated on the heap: escapes at line 43
 
-	s8 := []int{3, 5, 8} // OUT: object allocated on the heap: escapes at line 44
+	s8 := []int{3, 5, 8} // OUT: object allocated on the heap: escapes at line 46
 	callVariadic(s8...)
 
-	n4 := 3 // OUT: object allocated on the heap: escapes at line 48
-	n5 := 7 // OUT: object allocated on the heap: escapes at line 48
+	n4 := 3 // OUT: object allocated on the heap: escapes at line 50
+	n5 := 7 // OUT: object allocated on the heap: escapes at line 50
 	func() {
 		n4 = n5
 	}()
@@ -58,6 +60,11 @@ func main() {
 	var rbuf [5]rune
 	s = string(rbuf[:])
 	println(s)
+
+	// This shouldn't escape either.
+	n6 := 3
+	n7 := uintptr(unsafe.Pointer(&n6))
+	println(n7)
 }
 
 func derefInt(x *int) int {

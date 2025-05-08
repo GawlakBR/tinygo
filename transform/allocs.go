@@ -160,6 +160,10 @@ func valueEscapesAt(value llvm.Value) llvm.Value {
 		case llvm.ICmp:
 			// Comparing pointers don't let the pointer escape.
 			// This is often a compiler-inserted nil check.
+		case llvm.PtrToInt:
+			// Pointer to int conversion doesn't let the pointer escape.
+		case llvm.IntToPtr:
+			// Int to pointer conversion doesn't let the pointer escape.
 		default:
 			// Unknown instruction, might escape.
 			return use
