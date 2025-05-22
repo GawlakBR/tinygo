@@ -121,6 +121,15 @@ const (
 	fnNULL    pinFunc = 0x1f
 )
 
+// Additional definitions that are missing in generated src/device/rp/rp2350.go
+const (
+	// from 2350 Datasheet: 12.6.4.1. System DREQ Table
+	DMA_DREQ_SPI0_TX = 24
+	DMA_DREQ_SPI0_RX = 25
+	DMA_DREQ_SPI1_TX = 26
+	DMA_DREQ_SPI1_RX = 27
+)
+
 // Configure configures the gpio pin as per mode.
 func (p Pin) Configure(config PinConfig) {
 	if p == NoPin {
