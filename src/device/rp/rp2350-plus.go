@@ -1,11 +1,11 @@
 // Hand created file. DO NOT DELETE.
-// Definitions that are missing in src/device/rp/rp2040.go generated from SVDs
+// Definitions that are missing in src/device/rp/rp2350.go generated from SVDs
 
 //go:build rp && rp2350
 
 package rp
 
-// DMA: 12.6.4.1. System DREQ Table from RP2040 Datasheet 
+// DMA: 12.6.4.1. System DREQ Table from RP2350 Datasheet 
 // https://datasheets.raspberrypi.com/rp2350/rp2350-datasheet.pdf
 const (
 	DREQ_PIO0_TX0 = 0
