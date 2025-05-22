@@ -72,7 +72,7 @@ const (
 
 // Additional definitions that are missing in generated src/device/rp/rp2040.go
 const (
-	// from 2040 Datasheet: 2.5.3.1. System DREQ Table
+	// from RP2040 Datasheet: 2.5.3.1. System DREQ Table
 	DREQ_PIO0_TX0 = 0
 	DREQ_PIO0_TX1 = 1
 	DREQ_PIO0_TX2 = 2
