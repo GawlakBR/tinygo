@@ -70,6 +70,15 @@ const (
 	numClocks
 )
 
+// Additional definitions that are missing in generated src/device/rp/rp2040.go
+const (
+	// from 2040 Datasheet: 2.5.3.1. System DREQ Table
+	DMA_DREQ_SPI0_TX = 16
+	DMA_DREQ_SPI0_RX = 17
+	DMA_DREQ_SPI1_TX = 18
+	DMA_DREQ_SPI1_RX = 19
+)
+
 func calcClockDiv(srcFreq, freq uint32) uint32 {
 	// Div register is 24.8 int.frac divider so multiply by 2^8 (left shift by 8)
 	return uint32((uint64(srcFreq) << 8) / uint64(freq))
