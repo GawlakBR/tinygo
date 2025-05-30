@@ -13,7 +13,7 @@ package machine
 const (
 	X_DIR = GPIO10
 	Y_DIR = GPIO5
-	Z_DIR = ADC2
+	Z_DIR = GPIO28
 	E_DIR = GPIO13
 )
 
@@ -62,15 +62,15 @@ const (
 
 // Thermistors
 const (
-	THERM_BED      = ADC0 // Bed heater
-	THERM_EXTRUDER = ADC1 // Toolhead heater
+	THERM_BED      = GPIO26 // Bed heater
+	THERM_EXTRUDER = GPIO27 // Toolhead heater
 )
 
 // Misc
 const (
-	RGB        = GPIO24 // Neopixel
-	SERVO_ADC3 = ADC3   // Servo
-	PROBE      = GPIO22 // Probe
+	RGB   = GPIO24 // Neopixel
+	SERVO = GPIO29 // Servo
+	PROBE = GPIO22 // Probe
 )
 
 // Onboard crystal oscillator frequency, in MHz.
