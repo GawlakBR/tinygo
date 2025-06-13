@@ -1025,18 +1025,25 @@ func findFATMounts(options *compileopts.Options) ([]mountPoint, error) {
 				continue // skip if diskutil failed
 			}
 
-			var volName, fsType string
+			diskInfo := map[string]string{}
 			scanner := bufio.NewScanner(&out)
 			for scanner.Scan() {
 				line := scanner.Text()
-				if strings.HasPrefix(line, "  Volume Name:") {
-					volName = strings.TrimSpace(strings.TrimPrefix(line, "  Volume Name:"))
+				parts := strings.SplitN(line, ":", 2)
+				if len(parts) != 2 {
+					continue
 				}
-				if strings.HasPrefix(line, "  File System Personality:") {
-					fsType = strings.TrimSpace(strings.TrimPrefix(line, "  File System Personality:"))
-				}
+				key := strings.TrimSpace(parts[0])
+				value := strings.TrimSpace(parts[1])
+				diskInfo[key] = value
 			}
 			if err := scanner.Err(); err != nil {
+				continue
+			}
+
+			volName, okv := diskInfo["Volume Name"]
+			fsType, okf := diskInfo["File System Personality"]
+			if !(okv && okf) {
 				continue
 			}
 
