@@ -1043,7 +1043,7 @@ func findFATMounts(options *compileopts.Options) ([]mountPoint, error) {
 
 			volName, okv := diskInfo["Volume Name"]
 			fsType, okf := diskInfo["File System Personality"]
-			if !(okv && okf) {
+			if !okv || !okf {
 				continue
 			}
 
