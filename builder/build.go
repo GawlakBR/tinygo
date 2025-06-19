@@ -914,6 +914,11 @@ func Build(pkgName, outpath, tmpdir string, config *compileopts.Config) (BuildRe
 			}
 
 			// Run wasm-tools for component-model binaries
+			wasiPackage := strings.ReplaceAll(config.Target.WASIPackage, "{root}", goenv.Get("TINYGOROOT"))
+			if config.Options.WASIPackage != "" {
+				wasiPackage = config.Options.WASIPackage
+			}
+
 			witPackage := strings.ReplaceAll(config.Target.WITPackage, "{root}", goenv.Get("TINYGOROOT"))
 			if config.Options.WITPackage != "" {
 				witPackage = config.Options.WITPackage
@@ -922,7 +927,37 @@ func Build(pkgName, outpath, tmpdir string, config *compileopts.Config) (BuildRe
 			if config.Options.WITWorld != "" {
 				witWorld = config.Options.WITWorld
 			}
+
 			if witPackage != "" && witWorld != "" {
+				if wasiPackage != "" {
+
+					fmt.Println("Embedding WASI component. Wasi package: ", wasiPackage)
+
+					// wasm-tools component embed -w wasi:cli/command
+					// 		$$(tinygo env TINYGOROOT)/lib/wasi-cli/wit/ main.wasm -o embedded.wasm
+					componentEmbedInputFile := result.Binary
+					result.Binary = result.Executable + ".wasm-component-embed-1"
+					args := []string{
+						"component",
+						"embed",
+						wasiPackage,
+						componentEmbedInputFile,
+						"-o", result.Binary,
+					}
+
+					wasmtools := goenv.Get("WASMTOOLS")
+					if config.Options.PrintCommands != nil {
+						config.Options.PrintCommands(wasmtools, args...)
+					}
+					cmd := exec.Command(wasmtools, args...)
+					cmd.Stdout = os.Stdout
+					cmd.Stderr = os.Stderr
+
+					err := cmd.Run()
+					if err != nil {
+						return fmt.Errorf("`wasm-tools component embed` failed: %w", err)
+					}
+				}
 
 				// wasm-tools component embed -w wasi:cli/command
 				// 		$$(tinygo env TINYGOROOT)/lib/wasi-cli/wit/ main.wasm -o embedded.wasm
