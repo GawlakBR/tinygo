@@ -49,7 +49,7 @@ func (i2c *I2C) Tx(addr uint16, w, r []byte) (err error) {
 
 	// Configure for a single shot to perform both write and read (as applicable)
 	if len(w) != 0 {
-		i2c.Bus.TXD.PTR.Set(uint32(uintptr(unsafe.Pointer(&w[0]))))
+		i2c.Bus.TXD.PTR.Set(uint32(unsafeNoEscape(unsafe.Pointer(&w[0]))))
 		i2c.Bus.TXD.MAXCNT.Set(uint32(len(w)))
 
 		// If no read, immediately signal stop after TX
@@ -58,7 +58,7 @@ func (i2c *I2C) Tx(addr uint16, w, r []byte) (err error) {
 		}
 	}
 	if len(r) != 0 {
-		i2c.Bus.RXD.PTR.Set(uint32(uintptr(unsafe.Pointer(&r[0]))))
+		i2c.Bus.RXD.PTR.Set(uint32(unsafeNoEscape(unsafe.Pointer(&r[0]))))
 		i2c.Bus.RXD.MAXCNT.Set(uint32(len(r)))
 
 		// Auto-start Rx after Tx and Stop after Rx
@@ -89,6 +89,15 @@ func (i2c *I2C) Tx(addr uint16, w, r []byte) (err error) {
 		}
 	}
 
+	// Make sure the w and r buffers stay alive until this point, so they won't
+	// be garbage collected while the buffers are used by the hardware.
+	if len(w) > 0 {
+		keepAliveNoEscape(unsafe.Pointer(&w[0]))
+	}
+	if len(r) > 0 {
+		keepAliveNoEscape(unsafe.Pointer(&r[0]))
+	}
+
 	return
 }
 
@@ -117,7 +126,7 @@ func (i2c *I2C) Listen(addr uint8) error {
 //
 // For request events, the caller MUST call `Reply` to avoid hanging the i2c bus indefinitely.
 func (i2c *I2C) WaitForEvent(buf []byte) (evt I2CTargetEvent, count int, err error) {
-	i2c.BusT.RXD.PTR.Set(uint32(uintptr(unsafe.Pointer(&buf[0]))))
+	i2c.BusT.RXD.PTR.Set(uint32(unsafeNoEscape(unsafe.Pointer(&buf[0]))))
 	i2c.BusT.RXD.MAXCNT.Set(uint32(len(buf)))
 
 	i2c.BusT.TASKS_PREPARERX.Set(nrf.TWIS_TASKS_PREPARERX_TASKS_PREPARERX_Trigger)
@@ -133,6 +142,10 @@ func (i2c *I2C) WaitForEvent(buf []byte) (evt I2CTargetEvent, count int, err err
 			return I2CReceive, 0, twisError(i2c.BusT.ERRORSRC.Get())
 		}
 	}
+
+	// Make sure buf stays alive until this point, so it won't be garbage
+	// collected while it is used by the hardware.
+	keepAliveNoEscape(unsafe.Pointer(&buf[0]))
 
 	count = 0
 	evt = I2CFinish
@@ -163,7 +176,7 @@ func (i2c *I2C) WaitForEvent(buf []byte) (evt I2CTargetEvent, count int, err err
 
 // Reply supplies the response data the controller.
 func (i2c *I2C) Reply(buf []byte) error {
-	i2c.BusT.TXD.PTR.Set(uint32(uintptr(unsafe.Pointer(&buf[0]))))
+	i2c.BusT.TXD.PTR.Set(uint32(unsafeNoEscape(unsafe.Pointer(&buf[0]))))
 	i2c.BusT.TXD.MAXCNT.Set(uint32(len(buf)))
 
 	i2c.BusT.EVENTS_STOPPED.Set(0)
@@ -179,6 +192,10 @@ func (i2c *I2C) Reply(buf []byte) error {
 			return twisError(i2c.BusT.ERRORSRC.Get())
 		}
 	}
+
+	// Make sure the buffer stays alive until this point, so it won't be garbage
+	// collected while it is used by the hardware.
+	keepAliveNoEscape(unsafe.Pointer(&buf[0]))
 
 	i2c.BusT.EVENTS_STOPPED.Set(0)
 
