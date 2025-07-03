@@ -279,6 +279,7 @@ var (
 // #===========#==========#===============#=================-=========#
 // |   SPI1    |  LPSPI4  | PLL2(132 MHz) | D12/D11/D13/D10 : 3/3/3/3 |
 // |   SPI2    |  LPSPI3  | PLL2(132 MHz) |  D1/D26/D27/D0  : 7/2/2/7 |
+// |   SPI3    |  LPSPI1  | PLL2(132 MHz) | D42/D43/D45/D44 : 4/4/4/4 |
 // #===========#==========#===============#=================-=========#
 const (
 	SPI1_SDI_PIN = D12
@@ -290,6 +291,11 @@ const (
 	SPI2_SDO_PIN = D26
 	SPI2_SCK_PIN = D27
 	SPI2_CS_PIN  = D0
+
+	SPI3_SDI_PIN = D42
+	SPI3_SDO_PIN = D43
+	SPI3_SCK_PIN = D45
+	SPI3_CS_PIN  = D44
 )
 
 var (
