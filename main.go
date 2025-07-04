@@ -341,10 +341,6 @@ func dirsToModuleRootAbs(maindir, modroot string) []string {
 
 // validateOutputFormat checks if the output file extension matches the expected format
 func validateOutputFormat(outpath, expectedExt string) error {
-	if outpath == "" {
-		return nil // no output file specified
-	}
-
 	actualExt := filepath.Ext(outpath)
 	if actualExt != expectedExt {
 		return fmt.Errorf("output format %s does not match target format %s", actualExt, expectedExt)
