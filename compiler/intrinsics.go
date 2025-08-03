@@ -27,6 +27,8 @@ func (b *builder) defineIntrinsicFunction() {
 		b.createStackSaveImpl()
 	case name == "runtime.KeepAlive":
 		b.createKeepAliveImpl()
+	case name == "machine.keepAliveNoEscape":
+		b.createMachineKeepAliveImpl()
 	case strings.HasPrefix(name, "runtime/volatile.Load"):
 		b.createVolatileLoad()
 	case strings.HasPrefix(name, "runtime/volatile.Store"):
@@ -114,6 +116,20 @@ func (b *builder) createKeepAliveImpl() {
 	//
 	// It should be portable to basically everything as the "r" register type
 	// exists basically everywhere.
+	asmType := llvm.FunctionType(b.ctx.VoidType(), []llvm.Type{b.dataPtrType}, false)
+	asmFn := llvm.InlineAsm(asmType, "", "r", true, false, 0, false)
+	b.createCall(asmType, asmFn, []llvm.Value{pointerValue}, "")
+
+	b.CreateRetVoid()
+}
+
+// Implement machine.keepAliveNoEscape, which makes sure the compiler keeps the
+// pointer parameter alive until this point (for GC).
+func (b *builder) createMachineKeepAliveImpl() {
+	b.createFunctionStart(true)
+	pointerValue := b.getValue(b.fn.Params[0], getPos(b.fn))
+
+	// See createKeepAliveImpl for details.
 	asmType := llvm.FunctionType(b.ctx.VoidType(), []llvm.Type{b.dataPtrType}, false)
 	asmFn := llvm.InlineAsm(asmType, "", "r", true, false, 0, false)
 	b.createCall(asmType, asmFn, []llvm.Value{pointerValue}, "")

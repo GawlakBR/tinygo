@@ -145,7 +145,9 @@ func (a *ADC) Get() uint16 {
 	nrf.SAADC.CH[0].PSELP.Set(pwmPin)
 
 	// Destination for sample result.
-	nrf.SAADC.RESULT.PTR.Set(uint32(uintptr(unsafe.Pointer(&rawValue))))
+	// Note: rawValue doesn't need to be kept alive for the GC, since the
+	// volatile read later will force it to stay alive.
+	nrf.SAADC.RESULT.PTR.Set(uint32(unsafeNoEscape(unsafe.Pointer(&rawValue))))
 	nrf.SAADC.RESULT.MAXCNT.Set(1) // One sample
 
 	// Start tasks.
@@ -314,7 +316,7 @@ func (spi *SPI) Tx(w, r []byte) error {
 			if nr > 255 {
 				nr = 255
 			}
-			spi.Bus.RXD.PTR.Set(uint32(uintptr(unsafe.Pointer(&r[0]))))
+			spi.Bus.RXD.PTR.Set(uint32(unsafeNoEscape(unsafe.Pointer(&r[0]))))
 			r = r[nr:]
 		}
 		spi.Bus.RXD.MAXCNT.Set(nr)
@@ -325,7 +327,7 @@ func (spi *SPI) Tx(w, r []byte) error {
 			if nw > 255 {
 				nw = 255
 			}
-			spi.Bus.TXD.PTR.Set(uint32(uintptr(unsafe.Pointer(&w[0]))))
+			spi.Bus.TXD.PTR.Set(uint32(unsafeNoEscape(unsafe.Pointer(&w[0]))))
 			w = w[nw:]
 		}
 		spi.Bus.TXD.MAXCNT.Set(nw)
@@ -337,6 +339,15 @@ func (spi *SPI) Tx(w, r []byte) error {
 		for spi.Bus.EVENTS_END.Get() == 0 {
 		}
 		spi.Bus.EVENTS_END.Set(0)
+	}
+
+	// Make sure the w and r buffers stay alive for the GC until this point,
+	// since they are used by the hardware but not otherwise visible.
+	if len(r) != 0 {
+		keepAliveNoEscape(unsafe.Pointer(&r[0]))
+	}
+	if len(w) != 0 {
+		keepAliveNoEscape(unsafe.Pointer(&w[0]))
 	}
 
 	return nil
