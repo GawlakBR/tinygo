@@ -1286,19 +1286,19 @@ microcontrollers, it is common to use the .elf file extension to indicate a
 linked ELF file is generated. For Linux, it is common to build binaries with no
 extension at all.`
 
-	usageRun = `Run the program, either directly on the host or in an emulated environment 
+	usageRun = `Run the program, either directly on the host or in an emulated environment
 (depending on -target).`
 
 	usageFlash = `Flash the program to a microcontroller. Some common flags are described below.
 
-	-target={name}: 
+	-target={name}:
 			Specifies the type of microcontroller that is used. The name of the
 			microcontroller is given on the individual pages for each board type
 			listed under Microcontrollers
 			(https://tinygo.org/docs/reference/microcontrollers/).
 			Examples: "arduino-nano", "d1mini", "xiao".
 
-	-monitor: 
+	-monitor:
 			Start the serial monitor (see below) immediately after
 			flashing. However, some microcontrollers need a split second
 			or two to configure the serial port after flashing, and
@@ -1348,7 +1348,7 @@ instead of the expected \n (also known as ^J, NL, or LF) to indicate
 end-of-line. You may be able to get around this problem by hitting Control-J in
 tinygo monitor to transmit the \n end-of-line character.`
 
-	usageGdb = `Build the program, optionally flash it to a microcontroller if it is a remote 
+	usageGdb = `Build the program, optionally flash it to a microcontroller if it is a remote
 target, and drop into a GDB shell. From there you can set breakpoints, start the
 program with "run" or "continue" ("run" for a local program, continue for
 on-chip debugging), single-step, show a backtrace, break and resume the program
@@ -1632,8 +1632,9 @@ func main() {
 		flag.StringVar(&outpath, "o", "", "output filename")
 	}
 
-	var witPackage, witWorld string
+	var witPackage, witWorld, wasiPackage string
 	if command == "help" || command == "build" || command == "test" || command == "run" {
+		flag.StringVar(&wasiPackage, "wasi-package", "", "wasi package for wasm component embedding")
 		flag.StringVar(&witPackage, "wit-package", "", "wit package for wasm component embedding")
 		flag.StringVar(&witWorld, "wit-world", "", "wit world for wasm component embedding")
 	}
@@ -1721,6 +1722,7 @@ func main() {
 		Monitor:         *monitor,
 		BaudRate:        *baudrate,
 		Timeout:         *timeout,
+		WASIPackage:     wasiPackage,
 		WITPackage:      witPackage,
 		WITWorld:        witWorld,
 	}

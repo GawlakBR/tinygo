@@ -65,6 +65,7 @@ type TargetSpec struct {
 	JLinkDevice      string   `json:"jlink-device,omitempty"`
 	CodeModel        string   `json:"code-model,omitempty"`
 	RelocationModel  string   `json:"relocation-model,omitempty"`
+	WASIPackage      string   `json:"wasi-package,omitempty"`
 	WITPackage       string   `json:"wit-package,omitempty"`
 	WITWorld         string   `json:"wit-world,omitempty"`
 }
