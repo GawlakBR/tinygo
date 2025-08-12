@@ -250,6 +250,9 @@ func (b *builder) createMapIteratorNext(rangeVal ssa.Value, llvmRangeVal, it llv
 func hashmapIsBinaryKey(keyType types.Type) bool {
 	switch keyType := keyType.Underlying().(type) {
 	case *types.Basic:
+		if keyType.Kind() == types.UnsafePointer {
+			return true
+		}
 		return keyType.Info()&(types.IsBoolean|types.IsInteger) != 0
 	case *types.Pointer:
 		return true
