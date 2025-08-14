@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "${REALGCC:-gcc}" "$@" -specs "/root/tinygo/musl/lib/musl-gcc.specs"
