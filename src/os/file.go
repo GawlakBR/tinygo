@@ -41,11 +41,7 @@ var lstat = Lstat
 // Mkdir creates a directory. If the operation fails, it will return an error of
 // type *PathError.
 func Mkdir(path string, perm FileMode) error {
-	fs, suffix := findMount(path)
-	if fs == nil {
-		return &PathError{Op: "mkdir", Path: path, Err: ErrNotExist}
-	}
-	err := fs.Mkdir(suffix, perm)
+	err := currentFS().Mkdir(path, perm)
 	if err != nil {
 		return &PathError{Op: "mkdir", Path: path, Err: err}
 	}
@@ -64,11 +60,7 @@ func fixCount(n int, err error) (int, error) {
 // Remove removes a file or (empty) directory. If the operation fails, it will
 // return an error of type *PathError.
 func Remove(path string) error {
-	fs, suffix := findMount(path)
-	if fs == nil {
-		return &PathError{Op: "remove", Path: path, Err: ErrNotExist}
-	}
-	err := fs.Remove(suffix)
+	err := currentFS().Remove(path)
 	if err != nil {
 		return err
 	}
@@ -83,11 +75,7 @@ func (f *File) Name() string {
 // OpenFile opens the named file. If the operation fails, the returned error
 // will be of type *PathError.
 func OpenFile(name string, flag int, perm FileMode) (*File, error) {
-	fs, suffix := findMount(name)
-	if fs == nil {
-		return nil, &PathError{Op: "open", Path: name, Err: ErrNotExist}
-	}
-	handle, err := fs.OpenFile(suffix, flag, perm)
+	handle, err := currentFS().OpenFile(name, flag, perm)
 	if err != nil {
 		return nil, &PathError{Op: "open", Path: name, Err: err}
 	}

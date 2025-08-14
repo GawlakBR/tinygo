@@ -11,12 +11,6 @@ import (
 	"syscall"
 )
 
-func init() {
-	// Mount the host filesystem at the root directory. This is what most
-	// programs will be expecting.
-	Mount("/", unixFilesystem{})
-}
-
 // Stdin, Stdout, and Stderr are open Files pointing to the standard input,
 // standard output, and standard error file descriptors.
 var (
@@ -44,6 +38,11 @@ func Chdir(dir string) error {
 // If there is an error, it will be of type *LinkError.
 func Rename(oldpath, newpath string) error {
 	return rename(oldpath, newpath)
+}
+
+// Always directly access the filesystem.
+func currentFS() Filesystem {
+	return unixFilesystem{}
 }
 
 // unixFilesystem is an empty handle for a Unix/Linux filesystem. All operations

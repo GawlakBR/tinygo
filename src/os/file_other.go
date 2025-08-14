@@ -24,6 +24,11 @@ const isOS = false
 // number. It implements the FileHandle interface.
 type stdioFileHandle uint8
 
+// At the moment, no filesystems are supported on non-OS systems.
+func currentFS() Filesystem {
+	return dummyFilesystem{}
+}
+
 // file is the real representation of *File.
 // The extra level of indirection ensures that no clients of os
 // can overwrite this data, which could cause the finalizer

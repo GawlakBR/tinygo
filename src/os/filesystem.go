@@ -1,25 +1,5 @@
 package os
 
-import (
-	"strings"
-)
-
-// mounts lists the mount points currently mounted in the filesystem provided by
-// the os package. To resolve a path to a mount point, it is scanned from top to
-// bottom looking for the first prefix match.
-var mounts []mountPoint
-
-type mountPoint struct {
-	// prefix is a filesystem prefix, that always starts and ends with a forward
-	// slash. To denote the root filesystem, use a single slash: "/".
-	// This allows fast checking whether a path lies within a mount point.
-	prefix string
-
-	// filesystem is the Filesystem implementation that is mounted at this mount
-	// point.
-	filesystem Filesystem
-}
-
 // Filesystem provides an interface for generic filesystem drivers mounted in
 // the os package. The errors returned must be one of the os.Err* errors, or a
 // custom error if one doesn't exist. It should not be a *PathError because
@@ -65,33 +45,17 @@ type FileHandle interface {
 	Close() (err error)
 }
 
-// findMount returns the appropriate (mounted) filesystem to use for a given
-// filename plus the path relative to that filesystem.
-func findMount(path string) (Filesystem, string) {
-	for i := len(mounts) - 1; i >= 0; i-- {
-		mount := mounts[i]
-		if strings.HasPrefix(path, mount.prefix) {
-			return mount.filesystem, path[len(mount.prefix)-1:]
-		}
-	}
-	if isOS {
-		// Assume that the first entry in the mounts slice is the OS filesystem
-		// at the root of the directory tree. Use it as-is, to support relative
-		// paths.
-		return mounts[0].filesystem, path
-	}
-	return nil, path
+type dummyFilesystem struct {
 }
 
-// Mount mounts the given filesystem in the filesystem abstraction layer of the
-// os package. It is not possible to unmount filesystems. Filesystems added
-// later will override earlier filesystems.
-//
-// The provided prefix must start and end with a forward slash. This is true for
-// the root directory ("/") for example.
-func Mount(prefix string, filesystem Filesystem) {
-	if prefix[0] != '/' || prefix[len(prefix)-1] != '/' {
-		panic("os.Mount: invalid prefix")
-	}
-	mounts = append(mounts, mountPoint{prefix, filesystem})
+func (fs dummyFilesystem) Mkdir(path string, perm FileMode) error {
+	return ErrNotImplemented
+}
+
+func (fs dummyFilesystem) Remove(path string) error {
+	return ErrNotImplemented
+}
+
+func (fs dummyFilesystem) OpenFile(path string, flag int, perm FileMode) (uintptr, error) {
+	return 0, ErrNotImplemented
 }
